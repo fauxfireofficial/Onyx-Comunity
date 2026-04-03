@@ -1,0 +1,969 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Generated Content</title>
+  <!-- Bootstrap + Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link rel="stylesheet" href="style.css">
+  <script>
+    // Check if user is logged in
+    (function () {
+      const currentUser = localStorage.getItem('currentUser');
+      if (!currentUser) {
+        // Redirect to login page if not logged in
+        window.location.href = 'login.html';
+      }
+    })();
+  </script>
+  <!-- Firebase SDK (v12 modular) -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import { getFirestore, collection, addDoc, serverTimestamp, onSnapshot, query, orderBy, updateDoc, doc, increment, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+    import { getStorage, ref as sRef, uploadBytesResumable, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-storage.js";
+
+    // ---- Firebase Config (use the same project you already use) ----
+    const firebaseConfig = {
+      apiKey: "AIzaSyDM9zOfVMfqFFaODd7OZ-N2qC4ZuZhe10o",
+      authDomain: "fauxfireotp.firebaseapp.com",
+      databaseURL: "https://fauxfireotp-default-rtdb.firebaseio.com",
+      projectId: "fauxfireotp",
+      storageBucket: "fauxfireotp.firebasestorage.app",
+      messagingSenderId: "254203897427",
+      appId: "1:254203897427:web:a786eb9cf8d7c3514208a6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+    const storage = getStorage(app);
+
+    // Note: OneSignal REST API calls should ONLY be made from a secure server-side environment.
+    // Client-side exposure of the REST API key is a security risk.
+    window.triggerOnyxNotification = function (postText) {
+      console.warn("Client-side notification trigger is disabled for security. Use a backend service to send notifications.");
+    };
+
+    // ---- Utilities ----
+    const $ = (q, c = document) => c.querySelector(q);
+    const $$ = (q, c = document) => Array.from(c.querySelectorAll(q));
+    const toast = (msg, type = 'info') => {
+      const el = document.createElement('div');
+      el.className = `alert alert-${type === 'error' ? 'danger' : type} position-fixed top-0 start-50 translate-middle-x mt-3 `;
+      el.style.zIndex = 2000; el.textContent = msg; document.body.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    };
+
+    const getUser = () => {
+      try {
+        const cu = JSON.parse(localStorage.getItem('currentUser') || 'null');
+        if (cu && cu.email) return cu; // expecting {name,email,avatar,role}
+      } catch (e) { }
+      return {
+        name: 'Guest',
+        email: 'guest@ismy.app',
+        avatar: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Guest',
+        role: 'guest'
+      };
+    };
+
+    // ---- Composer Logic ----
+    let currentType = 'image';
+    let currentFiles = []; // File array support
+    let currentUploadTask = null;
+    let currentUploadUrl = '';
+
+    const typeRadios = $$('input[name="postType"]');
+    typeRadios.forEach(r => r.addEventListener('change', (e) => switchType(e.target.value)));
+
+    function switchType(type) {
+      currentType = type;
+      $$('.type-pane').forEach(p => p.classList.add('d-none'));
+      $(`#pane-${type}`).classList.remove('d-none');
+      if (type !== 'image' && type !== 'video') {
+        currentFiles = []; currentUploadUrl = ''; updateProgress(0);
+      }
+    }
+
+    // File selects
+    $('#imageInput').addEventListener('change', e => {
+      currentFiles = Array.from(e.target.files).slice(0, 4);
+      if (e.target.files.length > 4) toast('Only first 4 images selected.', 'info');
+    });
+    $('#videoInput').addEventListener('change', e => { currentFiles = e.target.files[0] ? [e.target.files[0]] : []; });
+
+    // Stars rating
+    const stars = $$('#reviewStars .fa-star');
+    let ratingVal = 0;
+    stars.forEach((s, i) => s.addEventListener('click', () => {
+      ratingVal = i + 1;
+      stars.forEach(x => x.classList.remove('text-warning'));
+      stars.forEach((x, idx) => { if (idx <= i) x.classList.add('text-warning'); });
+      $('#ratingValue').textContent = ratingVal;
+    }));
+
+
+    // Upload helper
+    function updateProgress(p) {
+      $('#uploadProgress').classList.toggle('d-none', p <= 0 || p >= 100);
+      $('#uploadProgress .progress-bar').style.width = `${p}%`;
+      $('#uploadProgress .progress-bar').setAttribute('aria-valuenow', p);
+    }
+
+    async function uploadToCloudinary(file) {
+      if (!file) return '';
+
+      // Limit check: 30MB kaafi hai, lekin thumbnails ko optimize karna zaroori hai
+      const maxSizeInBytes = 30 * 1024 * 1024;
+      if (file.size > maxSizeInBytes) {
+        toast('Error: File size exceeds 30MB limit!', 'error');
+        return Promise.reject('File too large');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('upload_preset', 'FauxFire_Games_Thumbnails');
+
+      return new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        // 'auto' images aur videos dono ko handle karta hai
+        xhr.open('POST', 'https://api.cloudinary.com/v1_1/dlulurony/auto/upload', true);
+
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable) {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            updateProgress(percent); // Aapka progress bar function
+          }
+        };
+
+        xhr.onload = () => {
+          if (xhr.status === 200) {
+            const data = JSON.parse(xhr.responseText);
+            toast('Upload complete', 'success');
+
+            let finalUrl = data.secure_url;
+
+            // --- SMART OPTIMIZATION LOGIC ---
+            if (data.resource_type === 'image') {
+              // Images ke liye: Format auto aur Quality auto
+              finalUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto/');
+            } else if (data.resource_type === 'video') {
+              // Videos ke liye: Compression aur format optimization
+              // vc_auto: sahi codec chunta hai, q_auto: size kam karta hai
+              finalUrl = data.secure_url.replace('/upload/', '/upload/f_auto,q_auto,vc_auto/');
+            }
+
+            resolve(finalUrl);
+          } else {
+            const err = JSON.parse(xhr.responseText);
+            toast('Upload failed: ' + (err.error?.message || 'Error'), 'error');
+            reject(err);
+          }
+        };
+
+        xhr.onerror = () => {
+          toast('Network error occurred', 'error');
+          reject('Network Error');
+        };
+
+        xhr.send(formData);
+      });
+
+    }
+    // Submit post
+    $('#publishBtn').addEventListener('click', async () => {
+      const user = getUser();
+      const caption = $('#caption').value.trim();
+      const tags = $('#tags').value.split(',').map(t => t.trim()).filter(Boolean).slice(0, 8);
+
+      try {
+        $('#publishBtn').disabled = true; $('#publishBtn').innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Publishing';
+
+        let payload = { type: currentType, caption, tags, createdAt: serverTimestamp(), user: { name: user.name || 'Guest', email: user.email || 'guest', avatar: user.avatar || '', role: user.role || 'guest' }, likes: 0, comments: 0 };
+
+        if (currentType === 'image') {
+          payload.mediaUrls = [];
+          for (let f of currentFiles) {
+            const url = await uploadToCloudinary(f);
+            if (url) payload.mediaUrls.push(url);
+          }
+          if (payload.mediaUrls.length === 0) throw new Error('No files/urls');
+          payload.mediaUrl = payload.mediaUrls[0]; // fallback
+        } else if (currentType === 'video') {
+          if (!currentFiles[0]) throw new Error('No video selected');
+          const url = await uploadToCloudinary(currentFiles[0]);
+          if (!url) throw new Error('Video upload failed');
+          payload.mediaUrl = url;
+          payload.mediaUrls = [url];
+        }
+        if (currentType === 'clip') {
+          const link = $('#clipUrl').value.trim();
+          if (!/^https?:\/\//i.test(link)) throw new Error('Valid clip URL required');
+          payload.clipUrl = link;
+        }
+        if (currentType === 'tip') {
+          const text = $('#tipText').value.trim();
+          if (!text) throw new Error('Tip text required');
+          payload.text = text;
+        }
+        if (currentType === 'review') {
+          const text = $('#reviewText').value.trim();
+          if (!text) throw new Error('Review text required');
+          payload.text = text; payload.rating = ratingVal || 0;
+        }
+
+        await addDoc(collection(db, 'ugc_posts'), payload);
+        toast('Posted!', 'success');
+
+        if (typeof window.triggerOnyxNotification === 'function') {
+          window.triggerOnyxNotification(caption || currentType + ' shared!');
+        }
+
+        await showInterstitialAd();
+
+        // reset
+        $('#caption').value = ''; $('#tags').value = ''; $('#clipUrl').value = '';
+        $('#tipText').value = ''; $('#reviewText').value = '';
+        $$('#reviewStars .fa-star').forEach(x => x.classList.remove('text-warning')); ratingVal = 0; $('#ratingValue').textContent = '0';
+        ['imageInput', 'videoInput'].forEach(id => { const i = $('#' + id); i.value = ''; });
+        currentFiles = []; currentUploadUrl = ''; updateProgress(0);
+      } catch (err) {
+        console.error(err); toast(err.message || 'Failed', 'error');
+      } finally {
+        $('#publishBtn').disabled = false; $('#publishBtn').textContent = 'Publish';
+      }
+    });
+
+    // ---- Feed ----
+    const likedKey = 'likedPosts_v1';
+    const getLiked = () => new Set(JSON.parse(localStorage.getItem(likedKey) || '[]'));
+    const setLiked = (s) => localStorage.setItem(likedKey, JSON.stringify(Array.from(s)));
+
+    function embedFromUrl(url) {
+      // youtube / twitch quick embed
+      try {
+        const u = new URL(url);
+        if (u.hostname.includes('youtube.com') || u.hostname.includes('youtu.be')) {
+          const id = u.searchParams.get('v') || u.pathname.split('/').pop();
+          return `<div class="ratio ratio-16x9"><iframe src="https://www.youtube.com/embed/${id}" title="YouTube" allowfullscreen loading="lazy"></iframe></div>`;
+        }
+        if (u.hostname.includes('twitch.tv')) {
+          const parts = u.pathname.split('/').filter(Boolean);
+          const channel = parts[0];
+          return `<div class="ratio ratio-16x9"><iframe src="https://player.twitch.tv/?channel=${channel}&parent=${location.hostname}" allowfullscreen loading="lazy"></iframe></div>`;
+        }
+      } catch (e) { }
+      return `<a href="${url}" target="_blank" class="btn btn-sm btn-outline-warning">Open Clip</a>`;
+    }
+
+    function renderPost(id, data) {
+      const tags = (data.tags || []).map(t => `<span class="chip me-1">#${t}</span>`).join(' ');
+      const when = data.createdAt && data.createdAt.toDate ? data.createdAt.toDate().toLocaleString() : 'Just now';
+
+      let media = '';
+
+      const currentUser = getUser();
+      let authorAvatar = data.user?.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=' + (data.user?.name || 'Guest');
+      // Live dynamic update for logged-in user's own posts
+      if (data.user?.email && currentUser?.email && data.user.email === currentUser.email) {
+        authorAvatar = currentUser.avatar || authorAvatar;
+      }
+
+      // --- YE SECTION OPTIMIZATION KE LIYE HAI ---
+      const optimizeUrl = (url, isVideo) => {
+        if (!url || !url.includes('cloudinary.com') || url.includes('f_auto')) return url;
+        if (isVideo) return url.replace('/upload/', '/upload/f_auto,q_auto,vc_auto/');
+        return url.replace('/upload/', '/upload/f_auto,q_auto/');
+      };
+
+      if (data.type === 'image') {
+        const urls = data.mediaUrls && data.mediaUrls.length > 0 ? data.mediaUrls : (data.mediaUrl ? [data.mediaUrl] : []);
+        if (urls.length > 0) {
+          if (urls.length === 1) {
+            media = `<div class="post-media"><img src="${optimizeUrl(urls[0], false)}" onclick="openLightbox(this.src)" alt="post" loading="lazy" style="border-radius: 8px; width: 100%; cursor: zoom-in;"></div>`;
+          } else {
+            const gridClass = `image-grid image-grid-${Math.min(urls.length, 4)}`;
+            let gridHtml = '';
+            urls.slice(0, 4).forEach((u, i) => {
+              gridHtml += `<img src="${optimizeUrl(u, false)}" onclick="openLightbox(this.src)" class="grid-img-${i}" loading="lazy" />`;
+            });
+            media = `<div class="${gridClass}">${gridHtml}</div>`;
+          }
+        }
+      }
+
+      if (data.type === 'video' && data.mediaUrl) {
+        // Video ke liye compression aur bhi behtar kar di hai
+        let videoUrl = optimizeUrl(data.mediaUrl, true);
+        media = `<div class="post-media"><video src="${videoUrl}" controls style="border-radius: 8px; width: 100%;"></video></div>`;
+      }
+
+      if (data.type === 'clip' && data.clipUrl) {
+        media = embedFromUrl(data.clipUrl);
+      }
+
+      if ((data.type === 'tip' || data.type === 'review') && data.text) {
+        media = `<p class="mb-0">${escapeHtml(data.text)}</p>`;
+      }
+
+      const rating = data.type === 'review' ? `<span class="ms-2 text-warning"><i class="fa-solid fa-star me-1"></i>${data.rating || 0}/5</span>` : '';
+
+      return `
+      <div class="card card-dark mb-3" data-id="${id}">
+        <div class="card-body">
+          <div class="d-flex align-items-center mb-3">
+            <img src="${authorAvatar}" 
+     class="rounded-circle me-2" width="40" height="40" style="object-fit:cover; border: 1px solid #ffcc00;" />
+            <div class="flex-grow-1">
+              <div class="fw-bold">${escapeHtml(data.user?.name || 'Player')}</div>
+              <div class="text-muted small">${when} • <span class="badge text-bg-dark text-uppercase">${data.type}</span> ${rating}</div>
+            </div>
+            <button class="btn btn-sm btn-outline-light" data-action="copyLink"><i class="fa-link"></i></button>
+          </div>
+          <h5 class="mb-2">${escapeHtml(data.caption || '')}</h5>
+          ${media}
+          <div class="mt-3 d-flex align-items-center gap-2 flex-wrap">
+            ${tags}
+          </div>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+          <div class="d-flex align-items-center gap-2">
+           <button class="btn btn-sm btn-outline-warning" data-action="like" data-postid="${id}">
+  <i class="fa-solid fa-star me-1"></i>
+  <span class="like-count">${data.likes || 0}</span>
+</button>
+
+            <button class="btn btn-sm btn-outline-secondary" data-action="openComments" data-postid="${id}"><i class="fa-regular fa-comment-dots me-1"></i><span class="comment-count">${data.comments || 0}</span></button>
+          </div>
+        
+        </div>
+      </div>`;
+    }
+
+
+    function escapeHtml(s) {
+      return (s || '').replace(/[&<>"']/g, m => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#039;" }[m]));
+    }
+
+    // Feed subscription
+    const feed = $('#feed');
+    feed.addEventListener("click", async (e) => {
+      // Handle Like Click
+      const likeBtn = e.target.closest('[data-action="like"]');
+      if (likeBtn) {
+        const postId = likeBtn.getAttribute("data-postid");
+        const likeCount = likeBtn.querySelector(".like-count");
+        const liked = getLiked();
+        if (liked.has(postId)) return;
+        try {
+          likeBtn.disabled = true;
+          likeBtn.classList.add("disabled");
+          await updateDoc(doc(db, "ugc_posts", postId), { likes: increment(1) });
+          liked.add(postId);
+          setLiked(liked);
+          likeBtn.classList.add("liked");
+          likeCount.textContent = Number(likeCount.textContent || 0) + 1;
+        } catch (err) {
+          toast("Failed to like", "error");
+        } finally {
+          likeBtn.disabled = false;
+          likeBtn.classList.remove("disabled");
+        }
+        return;
+      }
+
+      // Handle Comments Click
+      const commentBtn = e.target.closest('[data-action="openComments"]');
+      if (commentBtn) {
+        const postId = commentBtn.getAttribute("data-postid");
+        openCommentModal(postId);
+      }
+    });
+
+    // -----------------------------------
+    // 🔥 MODAL COMMENT LOGIC (Instagram / TikTok Style)
+    // -----------------------------------
+    let currentCommentUnsub = null;
+    let currentPostIdForComment = null;
+
+    function closeCommentModal() {
+      $('#commentPopup').classList.remove('show');
+      if (currentCommentUnsub) {
+        currentCommentUnsub();
+        currentCommentUnsub = null;
+      }
+      currentPostIdForComment = null;
+    }
+
+    $('#closeCommentBtn').addEventListener('click', closeCommentModal);
+
+    // Close on clicking outside modal content
+    $('#commentPopup').addEventListener('click', (e) => {
+      if (e.target === $('#commentPopup')) {
+        closeCommentModal();
+      }
+    });
+
+    $('#popupPostBtn').addEventListener('click', async () => {
+      const input = $('#popupCommentInput');
+      const txt = input.value.trim();
+      if (!txt || !currentPostIdForComment) return;
+
+      $('#popupPostBtn').disabled = true;
+      try {
+        const u = getUser();
+        await addDoc(collection(db, 'ugc_posts', currentPostIdForComment, 'comments'), {
+          text: txt,
+          user: { name: u.name, email: u.email },
+          createdAt: serverTimestamp()
+        });
+
+        await updateDoc(doc(db, 'ugc_posts', currentPostIdForComment), {
+          comments: increment(1)
+        });
+        input.value = '';
+      } catch (e) {
+        console.error("Error posting comment", e);
+      } finally {
+        $('#popupPostBtn').disabled = false;
+      }
+    });
+
+    function openCommentModal(postId) {
+      currentPostIdForComment = postId;
+      $('#commentPopup').classList.add('show');
+      const commentsWrap = $('#popupCommentList');
+      // Initial spinner state while loading
+      commentsWrap.innerHTML = '<div class="text-center p-4 text-muted"><div class="spinner-border text-info" role="status"></div><br><small class="mt-2 d-inline-block">Loading comments...</small></div>';
+
+      // Clear previous listener if any
+      if (currentCommentUnsub) currentCommentUnsub();
+
+      const qComments = query(collection(db, 'ugc_posts', postId, 'comments'), orderBy('createdAt', 'desc'));
+
+      currentCommentUnsub = onSnapshot(qComments, (cs) => {
+        // Keep existing UI if we're just getting a reply update, but full rerender for simplicity here
+        commentsWrap.innerHTML = '';
+
+        if (cs.empty) {
+          commentsWrap.innerHTML = '<div class="text-center text-muted p-5 mt-3"><i class="fas fa-comment fa-3x mb-3" style="opacity:0.2"></i><h5>No Comments Yet!</h5><p>Be the first one to comment.</p></div>';
+          return;
+        }
+
+        cs.docs.forEach(c => {
+          const cd = c.data();
+          const commentId = c.id;
+          const when = cd.createdAt?.toDate ? cd.createdAt.toDate().toLocaleString() : '';
+
+          const row = document.createElement('div');
+          row.className = "mb-3 p-3 rounded";
+          row.setAttribute('style', 'background: rgba(0,0,0,0.15) !important; border: 1px solid rgba(255,255,255,0.05) !important;');
+
+          row.innerHTML = `
+                  <div class="comment-content-wrapper" style="border:none !important; background:none !important; padding:0 !important;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                      <span style="font-weight: 800; color: #fbc02d; font-size: 0.9rem;">${escapeHtml(cd.user?.name || 'User')}</span>
+                      <span style="color: rgba(255,255,255,0.4); font-size: 0.7rem;">${when}</span>
+                    </div>
+                    <div style="color: #ffffff; font-size: 0.95rem; line-height: 1.4; margin-bottom: 8px;">${escapeHtml(cd.text || '')}</div>
+                    
+                    <div class="d-flex gap-3" style="border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+                       <button class="btn btn-sm p-0 reply-btn" style="color: #0dcaf0; font-size: 0.8rem; background:none; border:none; box-shadow:none;"><i class="fas fa-reply"></i> Reply</button>
+                       <button class="btn btn-sm p-0 toggle-replies-btn d-none" style="color: #95a5a6; font-size: 0.8rem; background:none; border:none; box-shadow:none; font-weight:bold;"><i class="fas fa-chevron-down"></i> View Replies</button>
+                    </div>
+                    
+                    <div class="reply-input mt-2 d-none">
+                      <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm bg-dark text-white border-secondary reply-text" placeholder="Write a reply..." style="border-radius:20px;" />
+                        <button class="btn btn-sm btn-warning send-reply" style="border-radius:20px;">Send</button>
+                      </div>
+                    </div>
+                    
+                    <div class="replies ms-3 mt-3 d-none border-start ps-3" id="replies-${c.id}" style="border-color: rgba(251,192,45, 0.5) !important;"></div>
+                  </div>
+                `;
+          commentsWrap.appendChild(row);
+
+          const repliesWrap = row.querySelector('.replies');
+          const toggleBtn = row.querySelector('.toggle-replies-btn');
+          const replyInputDiv = row.querySelector('.reply-input');
+
+          row.querySelector('.reply-btn').addEventListener('click', () => {
+            replyInputDiv.classList.toggle('d-none');
+            if (!replyInputDiv.classList.contains('d-none')) {
+              replyInputDiv.querySelector('input').focus();
+            }
+          });
+
+          row.querySelector('.send-reply').addEventListener('click', async () => {
+            const replyBtn = row.querySelector('.send-reply');
+            const rTxt = row.querySelector('.reply-text').value.trim();
+            if (!rTxt) return;
+
+            replyBtn.disabled = true;
+            try {
+              const u = getUser();
+              await addDoc(collection(db, 'ugc_posts', postId, 'comments', commentId, 'replies'), {
+                text: rTxt, user: { name: u.name, email: u.email }, createdAt: serverTimestamp()
+              });
+              await updateDoc(doc(db, 'ugc_posts', postId), { comments: increment(1) });
+              row.querySelector('.reply-text').value = '';
+              replyInputDiv.classList.add('d-none');
+            } catch (e) { } finally {
+              replyBtn.disabled = false;
+            }
+          });
+
+          // Listen for replies
+          const qReplies = query(collection(db, 'ugc_posts', postId, 'comments', commentId, 'replies'), orderBy('createdAt', 'asc'));
+          onSnapshot(qReplies, (rs) => {
+            repliesWrap.innerHTML = '';
+            if (!rs.empty) {
+              toggleBtn.classList.remove('d-none');
+              const isVisible = !repliesWrap.classList.contains('d-none');
+              toggleBtn.innerHTML = isVisible ? `<i class="fas fa-chevron-up me-1"></i> Hide ${rs.size} Replies` : `<i class="fas fa-chevron-down me-1"></i> View ${rs.size} Replies`;
+            } else {
+              toggleBtn.classList.add('d-none');
+            }
+
+            rs.forEach(r => {
+              const rd = r.data();
+              const rwhen = rd.createdAt?.toDate ? rd.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+              const div = document.createElement('div');
+              div.className = "mb-2 py-1";
+              div.innerHTML = `
+                      <span class="fw-bold" style="color: #e0e0e0; font-size: 0.85rem">${escapeHtml(rd.user?.name || 'User')}</span>
+                      <span class="text-muted ms-1" style="font-size:0.65rem">${rwhen}</span><br>
+                      <span style="color: #bbb; font-size: 0.9rem">${escapeHtml(rd.text || '')}</span>
+                    `;
+              repliesWrap.appendChild(div);
+            });
+          });
+
+          toggleBtn.addEventListener('click', () => {
+            const isHidden = repliesWrap.classList.toggle('d-none');
+            const count = repliesWrap.children.length;
+            toggleBtn.innerHTML = isHidden ? `<i class="fas fa-chevron-down me-1"></i> View ${count} Replies` : `<i class="fas fa-chevron-up me-1"></i> Hide ${count} Replies`;
+          });
+        });
+      });
+    }
+    // Sirf ek specific post ko dhoond kar dikhane wala function
+    async function loadSinglePost(postId) {
+      const feed = document.getElementById('feed');
+      feed.innerHTML = '<div class="text-center w-100 text-white p-5"><div class="spinner-border text-warning"></div><p class="mt-2">Onyx is loading your post...</p></div>';
+
+      try {
+        // Aapke collection ka naam 'ugc_posts' hai (aapke index.html ke mutabiq)
+        const docRef = doc(db, "ugc_posts", postId);
+        const docSnap = await getDoc(docRef);
+
+        if (docSnap.exists()) {
+          feed.innerHTML = ''; // Spinner hatayein
+          const data = docSnap.data();
+
+          // Post Card banayein
+          const postCard = document.createElement('div');
+          postCard.className = 'col-12 mb-4';
+          postCard.innerHTML = renderPost(docSnap.id, data); // Render function jo aapke paas pehle se hai
+          feed.appendChild(postCard);
+
+          // Back Button taake user baqi posts bhi dekh sakay
+          const backBtn = document.createElement('div');
+          backBtn.className = 'col-12 text-center mt-3 mb-5';
+          backBtn.innerHTML = `
+                <button class="btn btn-warning px-4 rounded-pill" onclick="window.location.href='index.html'">
+                    <i class="fa fa-arrow-left me-2"></i> Show All Posts
+                </button>`;
+          feed.appendChild(backBtn);
+
+        } else {
+          toast("Post not found or deleted!", "error");
+          window.location.href = 'index.html'; // 3 second baad wapas bhej dein
+        }
+      } catch (err) {
+        console.error("Error fetching single post:", err);
+        toast("Something went wrong!", "error");
+      }
+    }
+
+    // Post Feed Listener
+    const qFeed = query(collection(db, 'ugc_posts'), orderBy('createdAt', 'desc'));
+
+    onSnapshot(qFeed, async (snap) => {
+      feed.innerHTML = '';
+
+      for (const d of snap.docs) {
+        const postData = d.data();
+        const el = document.createElement('div');
+        el.innerHTML = renderPost(d.id, postData);
+        const card = el.firstElementChild;
+        feed.appendChild(card);
+      }
+    });
+
+
+
+    // Filters
+    $$('#filters [data-type]').forEach(b => b.addEventListener('click', () => {
+      $$('#filters .filter-btn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+      const t = b.getAttribute('data-type');
+      $$('#feed > .card').forEach(card => {
+        const badge = card.querySelector('.badge');
+        const type = badge ? badge.textContent.trim() : '';
+        card.style.display = (t === 'all' || type === t) ? '' : 'none';
+      });
+    }));
+
+    // Search
+    $('#search').addEventListener('input', (e) => {
+      const q = e.target.value.trim().toLowerCase();
+      $$('#feed > .card').forEach(card => {
+        const txt = card.textContent.toLowerCase();
+        card.style.display = txt.includes(q) ? '' : 'none';
+      });
+    });
+
+    // Toggle composer visibility (Modal version)
+    const toggleComposerBtn = document.getElementById('toggleComposer');
+    const createPostModal = document.getElementById('createPostModal');
+    const closeComposerBtn = document.getElementById('closeComposerBtn');
+
+    function openComposer() {
+      createPostModal.classList.add('show');
+    }
+
+    function closeComposer() {
+      createPostModal.classList.remove('show');
+    }
+
+    if (toggleComposerBtn) {
+      toggleComposerBtn.addEventListener('click', openComposer);
+    }
+
+    if (closeComposerBtn) {
+      closeComposerBtn.addEventListener('click', closeComposer);
+    }
+
+    // Close on click outside modal content
+    if (createPostModal) {
+      createPostModal.addEventListener('click', (e) => {
+        if (e.target === createPostModal) {
+          closeComposer();
+        }
+      });
+    }
+
+    // Also close modal when clicking the explicit 'Publish' button successfully
+    const originalPublishBtn = document.getElementById('publishBtn');
+    if (originalPublishBtn) {
+      originalPublishBtn.addEventListener('click', async () => {
+        // Wait till disable prop finishes
+        setTimeout(() => {
+          if (originalPublishBtn.textContent === 'Publish') {
+            closeComposer();
+          }
+        }, 300); // Small buffer to check if success happened
+      });
+    }
+
+  </script>
+
+</head>
+
+<body>
+  <!-- Navbar -->
+  <nav class="main-nav navbar navbar-expand-lg">
+    <div class="container d-flex justify-content-between align-items-center">
+      <!-- Logo / Brand -->
+      <a class="brand navbar-brand d-flex align-items-center" href="index.html">
+        <i class="fas fa-gem me-2"></i>
+
+        onyx
+      </a>
+
+      <!-- Right side items -->
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn text-white fs-4" id="sidebarToggle" style="border: none; background: none;">
+          <i class="fas fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </nav>
+  <div id="mySidebar" class="sidebar">
+    <div class="sidebar-header">
+      <button class="close-btn" id="closeSidebar">&times;</button>
+
+      <div class="user-info-side mt-5 text-center" id="sideUserInfo" style="display: none;">
+        <img src="" alt="Profile" class="mx-auto mb-2" id="sideProfileImg"
+          style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #ffcc00; display:none;">
+        <i class="fas fa-user-circle fa-4x text-white mb-2" id="sideProfileFallback"></i>
+        <h5 class="text-white" id="sideUserName">Gamer</h5>
+      </div>
+
+      <div class="text-center mt-5" id="sideAuthBtn" style="display: none;">
+        <button class="btn btn-warning" onclick="window.location.href='login.html'">SIGN IN</button>
+      </div>
+    </div>
+
+    <hr class="text-secondary mx-3">
+
+    <div class="sidebar-links">
+      <a href="games.html"><i class="fas fa-gamepad me-3"></i> Gaming</a>
+      <a href="profile.html" id="sideProfileLink"><i class="fas fa-user me-3"></i> My Profile</a>
+      <a href="contact.html" class="active"><i class="fas fa-envelope me-3"></i> Contact Us</a>
+      <a href="#" id="sideLogout" style="color: #ff4444;"><i class="fas fa-sign-out-alt me-3"></i> Logout</a>
+    </div>
+  </div>
+
+  <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+  <div class="page-wrap container py-4">
+    <header class="page-header mb-4">
+      <div class="search-filter-wrapper">
+        <!-- Search Section -->
+        <div class="search-section">
+          <div class="search-container">
+            <i class="fas fa-search search-icon"></i>
+            <input class="form-control" id="search" placeholder="Search posts..." aria-label="Search posts" />
+          </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+          <ul class="filter-list" id="filters" role="tablist">
+            <li role="presentation"><button class="filter-btn active" data-type="all" role="tab">All</button></li>
+            <li role="presentation"><button class="filter-btn" data-type="image" role="tab">Screenshots/Memes</button>
+            </li>
+            <li role="presentation"><button class="filter-btn" data-type="video" role="tab">Clips (Video)</button></li>
+            <li role="presentation"><button class="filter-btn" data-type="clip" role="tab">Clips (Link)</button></li>
+            <li role="presentation"><button class="filter-btn" data-type="tip" role="tab">Tips</button></li>
+            <li role="presentation"><button class="filter-btn" data-type="review" role="tab">Reviews</button></li>
+          </ul>
+        </div>
+      </div>
+    </header>
+    <!-- Filter Buttons -->
+
+    <div id="commentPopup" class="comment-modal">
+      <div class="comment-modal-content">
+        <div class="comment-modal-header">
+          <h5>Comments</h5>
+          <button id="closeCommentBtn" class="close-popup-btn">&times;</button>
+        </div>
+        <div id="popupCommentList" class="comment-modal-body">
+        </div>
+        <div class="comment-modal-footer">
+          <div class="d-flex gap-2">
+            <input type="text" id="popupCommentInput" class="form-control" placeholder="Add a comment...">
+            <button id="popupPostBtn" class="btn btn-neon">Post</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Create Post Modal -->
+    <div id="createPostModal" class="create-post-modal">
+      <div class="create-post-modal-content">
+        <div class="create-post-modal-header">
+          <h5>Create New Drop</h5>
+          <button id="closeComposerBtn" class="close-popup-btn">&times;</button>
+        </div>
+        <div class="create-post-modal-body">
+          <div class="row g-3">
+            <div class="col-12 col-lg-3">
+              <label class="form-label text-dark">Post Type</label>
+              <div class="vstack gap-2">
+                <label class="form-check text-dark"><input class="form-check-input me-2" type="radio" name="postType"
+                    value="image" checked> Screenshot / Meme</label>
+                <label class="form-check text-dark"><input class="form-check-input me-2" type="radio" name="postType"
+                    value="video"> Clip (Upload mp4)</label>
+                <label class="form-check text-dark"><input class="form-check-input me-2" type="radio" name="postType"
+                    value="clip"> Clip (Link)</label>
+                <label class="form-check text-dark"><input class="form-check-input me-2" type="radio" name="postType"
+                    value="tip">
+                  Tip / Text</label>
+                <label class="form-check text-dark"><input class="form-check-input me-2" type="radio" name="postType"
+                    value="review"> Review</label>
+              </div>
+            </div>
+            <div class="col-12 col-lg-9">
+              <!-- Image Upload Pane -->
+              <div class="type-pane" id="pane-image">
+                <div class="mb-3">
+                  <label class="form-label text-dark">Upload Image (Max 4, jpg/png)</label>
+                  <input type="file" class="form-control" id="imageInput" accept="image/*" multiple />
+                </div>
+              </div>
+              <!-- Video Upload Pane -->
+              <div class="type-pane d-none" id="pane-video">
+                <div class="mb-3">
+                  <label class="form-label text-dark">Upload Video (mp4)</label>
+                  <input type="file" class="form-control" id="videoInput" accept="video/mp4" />
+                </div>
+              </div>
+              <!-- Clip URL Pane -->
+              <div class="type-pane d-none" id="pane-clip">
+                <div class="mb-3">
+                  <label class="form-label text-dark">Clip URL (YouTube/Twitch)</label>
+                  <input type="url" class="form-control" id="clipUrl" placeholder="https://youtube.com/watch?v=..." />
+                </div>
+              </div>
+              <!-- Tip Text Pane -->
+              <div class="type-pane d-none" id="pane-tip">
+                <div class="mb-3">
+                  <label class="form-label text-dark">Tip Text</label>
+                  <textarea class="form-control" id="tipText" rows="4"
+                    placeholder="Share your gaming tip..."></textarea>
+                </div>
+              </div>
+              <!-- Review Pane -->
+              <div class="type-pane d-none" id="pane-review">
+                <div class="mb-3">
+                  <label class="form-label text-dark">Review Text</label>
+                  <textarea class="form-control" id="reviewText" rows="4" placeholder="Write your review..."></textarea>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label text-dark">Rating</label>
+                  <div id="reviewStars" class="rating">
+                    <i class="fa-regular fa-star text-warning"></i>
+                    <i class="fa-regular fa-star text-warning"></i>
+                    <i class="fa-regular fa-star text-warning"></i>
+                    <i class="fa-regular fa-star text-warning"></i>
+                    <i class="fa-regular fa-star text-warning"></i>
+                    <span class="ms-2 text-dark"><span id="ratingValue">0</span>/5</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Common Fields -->
+              <div class="mb-3">
+                <label class="form-label text-dark">Caption</label>
+                <input type="text" class="form-control" id="caption" placeholder="Write a caption..." />
+              </div>
+              <div class="mb-3">
+                <label class="form-label text-dark">TAGS (comma separated)</label>
+                <input type="text" class="form-control" id="tags" placeholder="ff, gta, headshot" />
+              </div>
+              <!-- Upload Progress -->
+              <div class="alert alert-info d-none" id="uploadProgress">
+                <div class="d-flex align-items-center">
+                  <div class="progress flex-grow-1 me-2" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0"
+                      aria-valuemax="100"></div>
+                  </div>
+                  <span class="small">Uploading...</span>
+                </div>
+              </div>
+              <!-- Publish Button -->
+              <div class="d-flex justify-content-end mt-3">
+                <button class="btn btn-neon" id="publishBtn">Publish</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Feed -->
+    <div id="feed" class="row g-4"></div>
+
+    <!-- Lightbox Modal -->
+    <div id="lightboxModal" class="lightbox-modal">
+      <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+      <img id="lightboxImg" src="" alt="Zoomed" />
+    </div>
+
+    <script>
+      function openLightbox(src) {
+        document.getElementById('lightboxImg').src = src;
+        document.getElementById('lightboxModal').classList.add('show');
+      }
+      function closeLightbox() {
+        document.getElementById('lightboxModal').classList.remove('show');
+        document.getElementById('lightboxImg').src = '';
+      }
+      const lightboxModalEl = document.getElementById('lightboxModal');
+      if (lightboxModalEl) {
+        lightboxModalEl.addEventListener('click', (e) => {
+          if (e.target === lightboxModalEl) closeLightbox();
+        });
+      }
+    </script>
+  </div>
+
+  <!-- Plus Button to Toggle Composer -->
+  <button class="create-post-btn" id="toggleComposer">
+    <i class="fas fa-plus"></i>
+  </button>
+
+
+  <script src="push.js"></script>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // (Old profileIcon and authButton code removed as these elements are now in the sidebar)
+
+    // Optional: Listen for login/logout events
+    window.addEventListener('storage', function (e) {
+      if (e.key === 'currentUser') {
+        // Reload to update navbar
+        location.reload();
+      }
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+      const sidebar = document.getElementById('mySidebar');
+      const overlay = document.getElementById('sidebarOverlay');
+      const toggleBtn = document.getElementById('sidebarToggle');
+      const closeBtn = document.getElementById('closeSidebar');
+      const sideLogout = document.getElementById('sideLogout');
+
+      // Open Sidebar
+      toggleBtn.addEventListener('click', () => {
+        sidebar.style.width = "280px";
+        overlay.style.display = "block";
+      });
+
+      // Close Sidebar function
+      function closeNav() {
+        sidebar.style.width = "0";
+        overlay.style.display = "none";
+      }
+
+      closeBtn.addEventListener('click', closeNav);
+      overlay.addEventListener('click', closeNav);
+
+      // Sidebar Auth Check
+      const currentUser = localStorage.getItem('currentUser');
+      if (currentUser) {
+        const userData = JSON.parse(currentUser);
+        document.getElementById('sideUserInfo').style.display = 'block';
+        document.getElementById('sideUserName').textContent = userData.name || 'Gamer';
+
+        if (userData.avatar) {
+          const sideImg = document.getElementById('sideProfileImg');
+          sideImg.src = userData.avatar;
+          sideImg.style.display = 'block';
+          document.getElementById('sideProfileFallback').style.display = 'none';
+        }
+      } else {
+        document.getElementById('sideAuthBtn').style.display = 'block';
+        document.getElementById('sideProfileLink').style.display = 'none';
+        sideLogout.style.display = 'none';
+      }
+
+      // Logout Function
+      sideLogout.addEventListener('click', (e) => {
+        e.preventDefault();
+        localStorage.removeItem('currentUser');
+        location.reload();
+      });
+    });
+  </script>
+  <script src="backbutton.js"></script>
+</body>
+
+</html>

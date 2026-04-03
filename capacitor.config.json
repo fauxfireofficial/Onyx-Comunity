@@ -1,0 +1,17 @@
+{
+  "appId": "com.fauxfire.onyx",
+  "appName": "Onyx",
+  "webDir": "www",
+  "plugins": {
+    "AdMob": {
+      "androidAppId": "ca-app-pub-2895577345632637~1451491425"
+    },
+    "SplashScreen": {
+  "launchShowDuration": 3000,
+  "launchAutoHide": true,
+  "androidScaleType": "CENTER_CROP",
+  "splashFullScreen": true,
+  "splashImmersive": true
+}
+  }
+}

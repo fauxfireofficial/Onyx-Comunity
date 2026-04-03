@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us - Onyx Community</title>
+    <!-- Bootstrap + Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- EmailJS SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        /* Rating Stars Style */
+        .rating-stars {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+            gap: 5px;
+        }
+        
+        .rating-stars input {
+            display: none;
+        }
+        
+        .rating-stars label {
+            cursor: pointer;
+            font-size: 2rem;
+            color: #c0c0c0;
+            transition: all 0.2s ease;
+        }
+        
+        .rating-stars label:hover,
+        .rating-stars label:hover ~ label,
+        .rating-stars input:checked ~ label {
+            color: var(--gold) !important;
+            transform: scale(1.1);
+        }
+        
+        .rating-stars label i {
+            font-size: 2rem;
+        }
+        
+        /* Contact Cards Hover Effect */
+        .contact-card {
+            transition: var(--transition);
+            height: 100%;
+        }
+        
+        .contact-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="main-nav navbar navbar-expand-lg">
+        <div class="container d-flex justify-content-between align-items-center">
+            <a class="brand navbar-brand d-flex align-items-center" href="index.html">
+                <i class="fas fa-gem me-2"></i>
+                onyx
+            </a>
+            <div class="d-flex align-items-center gap-3">
+                <!-- Auth Button (SIGN IN) - Yeh sirf logged out users ko dikhega -->
+                <button class="btn-auth" id="authButton" onclick="window.location.href='login.html'" style="display: none;">
+                    <i class="fas fa-sign-in-alt me-2"></i>SIGN IN
+                </button>
+                
+                <!-- Sidebar Toggle - Yeh hamesha dikhega -->
+                <button class="btn text-white fs-4" id="sidebarToggle" style="border: none; background: none;">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Sidebar - Conditional: Sirf logged in users ko dikhega -->
+    <div id="mySidebar" class="sidebar">
+        <div class="sidebar-header">
+            <button class="close-btn" id="closeSidebar">&times;</button>
+            
+            <!-- Logged In User Info -->
+            <div class="user-info-side mt-5 text-center" id="sideUserInfo" style="display: none;">
+                <img src="" alt="Profile" class="mx-auto mb-2" id="sideProfileImg" style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #ffcc00; display:none;">
+                <i class="fas fa-user-circle fa-4x text-white mb-2" id="sideProfileFallback"></i>
+                <h5 class="text-white" id="sideUserName">Gamer</h5>
+            </div>
+
+            <!-- Logged Out User - Sign In Button -->
+            <div class="text-center mt-5" id="sideAuthBtn" style="display: none;">
+                <button class="btn btn-warning" onclick="window.location.href='login.html'">SIGN IN</button>
+            </div>
+        </div>
+
+        <hr class="text-secondary mx-3">
+
+        <!-- Sidebar Links - Conditional: Sirf logged in users ko dikhenge -->
+        <div class="sidebar-links" id="sidebarLinks" style="display: none;">
+            <a href="index.html"><i class="fas fa-home me-3"></i> Home</a>
+            <a href="games.html"><i class="fas fa-gamepad me-3"></i> Gaming</a>
+            <a href="profile.html"><i class="fas fa-user me-3"></i> My Profile</a>
+            <a href="#" id="sideLogout" style="color: #ff4444;"><i class="fas fa-sign-out-alt me-3"></i> Logout</a>
+        </div>
+    </div>
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Contact Page Content -->
+    <div class="page-wrap container py-4">
+        <!-- Page Header -->
+        <header class="page-header mb-4">
+            <div class="search-filter-wrapper" style="justify-content: center;">
+                <h1 class="section-title" style="margin: 0; font-size: 2.5rem;">
+                    <i class="fas fa-envelope me-3"></i>Contact Us
+                </h1>
+            </div>
+        </header>
+
+        <!-- Contact Content -->
+        <div class="row g-4">
+
+            <!-- Contact Form (Right Side) -->
+            <div class="col-lg-8">
+                <div class="card card-dark">
+                    <div class="card-body p-4">
+                        <h2 class="avatar-name mb-4">
+                            <i class="fas fa-paper-plane me-3 text-warning"></i>Send us a Message
+                        </h2>
+                        
+                        <form id="contactForm">
+                            <!-- Name Field -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-user me-2"></i>Your Name
+                                </label>
+                                <input type="text" class="form-control" id="name" placeholder="Enter your name" required>
+                            </div>
+
+                            <!-- Email Field -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-envelope me-2"></i>Email Address
+                                </label>
+                                <input type="email" class="form-control" id="email" placeholder="Enter your email" required>
+                            </div>
+
+                            <!-- Subject Field -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-tag me-2"></i>Subject
+                                </label>
+                                <select class="form-control" id="subject">
+                                    <option value="General Inquiry">General Inquiry</option>
+                                    <option value="Account Deletion">Account Deletion</option>
+                                    <option value="Bug Report">Bug Report</option>
+                                    <option value="Others">Others</option>
+                                </select>
+                            </div>
+
+                            <!-- Rating Stars (Optional) -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-star me-2 text-warning"></i>Rating (Optional)
+                                </label>
+                                <div class="rating-stars">
+                                    <input type="radio" name="rating" id="star5" value="5">
+                                    <label for="star5"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" id="star4" value="4">
+                                    <label for="star4"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" id="star3" value="3">
+                                    <label for="star3"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" id="star2" value="2">
+                                    <label for="star2"><i class="fas fa-star"></i></label>
+                                    
+                                    <input type="radio" name="rating" id="star1" value="1">
+                                    <label for="star1"><i class="fas fa-star"></i></label>
+                                </div>
+                            </div>
+
+                            <!-- Message Field -->
+                            <div class="mb-4">
+                                <label class="form-label">
+                                    <i class="fas fa-comment me-2"></i>Message
+                                </label>
+                                <textarea class="form-control" id="message" rows="6" placeholder="Write your message here..." required></textarea>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <button type="submit" class="btn-neon" id="submitBtn">
+                                    <i class="fas fa-paper-plane me-2"></i>Send Message
+                                </button>
+                                <span class="text-muted small">
+                                    <i class="fas fa-shield-alt me-1 text-warning"></i>We'll respond within 24h
+                                </span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification"></div>
+
+    <!-- EmailJS Configuration -->
+    <script>
+        // Initialize EmailJS
+        (function() {
+            emailjs.init("kCHOf-4Jp9IdcAly0");
+        })();
+
+        // Toast function
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            toast.className = `toast-notification toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Handle form submission
+        document.getElementById('contactForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Get form values
+            const name = document.getElementById('name').value.trim();
+            const email = document.getElementById('email').value.trim();
+            const subject = document.getElementById('subject').value;
+            const message = document.getElementById('message').value.trim();
+            const rating = document.querySelector('input[name="rating"]:checked')?.value || 'Not rated';
+
+            // Validation
+            if (!name || !email || !message) {
+                showToast('Please fill all required fields', 'error');
+                return;
+            }
+
+            if (!email.includes('@') || !email.includes('.')) {
+                showToast('Please enter a valid email address', 'error');
+                return;
+            }
+
+            // Disable button and show loading
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Sending...';
+
+            // EmailJS Parameters
+            const templateParams = {
+                from_name: name,
+                from_email: email,
+                subject: subject,
+                message: message,
+                rating: rating,
+                to_email: 'fauxfireofficial@gmail.com'
+            };
+
+            // Send email using EmailJS
+            emailjs.send(
+                'service_s61ngs3',
+                'template_d176qec',
+                templateParams
+            ).then(function(response) {
+                console.log('SUCCESS!', response.status, response.text);
+                showToast('Message sent successfully! We\'ll reply soon.', 'success');
+                
+                // Reset form
+                document.getElementById('contactForm').reset();
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }, function(error) {
+                console.log('FAILED...', error);
+                showToast('Failed to send message. Please try again.', 'error');
+                
+                // Reset button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+
+        // Check login status and update UI
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentUser = localStorage.getItem('currentUser');
+            
+            // Get all elements
+            const authButton = document.getElementById('authButton');
+            const sideUserInfo = document.getElementById('sideUserInfo');
+            const sideAuthBtn = document.getElementById('sideAuthBtn');
+            const sidebarLinks = document.getElementById('sidebarLinks');
+            const sideLogout = document.getElementById('sideLogout');
+            const sideProfileLink = document.getElementById('sideProfileLink');
+            
+            if (currentUser) {
+                // ✅ USER LOGGED IN
+                console.log('User logged in');
+                
+                // Hide auth button in navbar
+                if (authButton) authButton.style.display = 'none';
+                
+                // Show user info in sidebar
+                if (sideUserInfo) sideUserInfo.style.display = 'block';
+                
+                // Hide sign in button in sidebar
+                if (sideAuthBtn) sideAuthBtn.style.display = 'none';
+                
+                // Show sidebar links
+                if (sidebarLinks) sidebarLinks.style.display = 'block';
+                
+                // Set user data
+                try {
+                    const userData = JSON.parse(currentUser);
+                    const userNameEl = document.getElementById('sideUserName');
+                    if (userNameEl) userNameEl.textContent = userData.name || 'Gamer';
+                    
+                    // Set profile image if available
+                    if (userData.avatar) {
+                        const profileImg = document.getElementById('sideProfileImg');
+                        const fallbackIcon = document.getElementById('sideProfileFallback');
+                        if (profileImg && fallbackIcon) {
+                            profileImg.src = userData.avatar;
+                            profileImg.style.display = 'block';
+                            fallbackIcon.style.display = 'none';
+                        }
+                    }
+                } catch (e) {
+                    console.error('Error parsing user data', e);
+                }
+            } else {
+                // ❌ USER LOGGED OUT
+                console.log('User logged out');
+                
+                // Show auth button in navbar
+                if (authButton) authButton.style.display = 'block';
+                
+                // Hide user info in sidebar
+                if (sideUserInfo) sideUserInfo.style.display = 'none';
+                
+                // Show sign in button in sidebar
+                if (sideAuthBtn) sideAuthBtn.style.display = 'block';
+                
+                // Hide sidebar links
+                if (sidebarLinks) sidebarLinks.style.display = 'none';
+            }
+        });
+
+        // Sidebar Toggle
+        document.getElementById('sidebarToggle').addEventListener('click', function() {
+            document.getElementById('mySidebar').classList.add('open');
+            document.getElementById('sidebarOverlay').style.display = 'block';
+        });
+
+        document.getElementById('closeSidebar').addEventListener('click', function() {
+            document.getElementById('mySidebar').classList.remove('open');
+            document.getElementById('sidebarOverlay').style.display = 'none';
+        });
+
+        document.getElementById('sidebarOverlay').addEventListener('click', function() {
+            document.getElementById('mySidebar').classList.remove('open');
+            this.style.display = 'none';
+        });
+
+        // Logout functionality
+        document.getElementById('sideLogout').addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('currentUser');
+            showToast('Logged out successfully!', 'success');
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
+        });
+    </script>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

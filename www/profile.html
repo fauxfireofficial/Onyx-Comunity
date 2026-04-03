@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile - Faux Fire Community</title>
+    <!-- Bootstrap + Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;700;800&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="profile-style.css">
+
+</head>
+
+<body>
+    <!-- Navbar -->
+    <nav class="main-nav navbar navbar-expand-lg">
+        <div class="container d-flex justify-content-between align-items-center">
+            <!-- Logo / Brand -->
+            <a class="brand navbar-brand d-flex align-items-center" href="index.html">
+                <i class="fas fa-gem me-2"></i>
+
+                onyx
+            </a>
+
+            <!-- Right side items -->
+            <div class="d-flex align-items-center gap-3">
+                <button class="btn text-white fs-4" id="sidebarToggle" style="border: none; background: none;">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+    <div id="mySidebar" class="sidebar">
+        <div class="sidebar-header">
+            <button class="close-btn" id="closeSidebar">&times;</button>
+
+            <div class="user-info-side mt-5 text-center" id="sideUserInfo" style="display: none;">
+                <img src="" alt="Profile" class="mx-auto mb-2" id="sideProfileImg"
+                    style="width: 70px; height: 70px; border-radius: 50%; object-fit: cover; border: 2px solid #ffcc00; display:none;">
+                <i class="fas fa-user-circle fa-4x text-white mb-2" id="sideProfileFallback"></i>
+                <h5 class="text-white" id="sideUserName">Gamer</h5>
+            </div>
+
+            <div class="text-center mt-5" id="sideAuthBtn" style="display: none;">
+                <button class="btn btn-warning" onclick="window.location.href='login.html'">SIGN IN</button>
+            </div>
+        </div>
+
+        <hr class="text-secondary mx-3">
+
+        <div class="sidebar-links">
+
+            <a href="index.html" id="sideProfileLink"><i class="fas fa-home me-3"></i> Home</a>
+            <a href="games.html"><i class="fas fa-gamepad me-3"></i> Gaming</a>
+            <a href="contact.html" class="active"><i class="fas fa-envelope me-3"></i> Contact Us</a>
+            <a href="#" id="sideLogout" style="color: #ff4444;"><i class="fas fa-sign-out-alt me-3"></i> Logout</a>
+        </div>
+    </div>
+
+    <div id="sidebarOverlay" class="sidebar-overlay"></div>
+
+    <!-- Profile Container -->
+    <div class="profile-container">
+        <div class="profile-card">
+            <!-- Profile Header -->
+            <div class="profile-header">
+                <div class="header-icon">
+                    <i class="fas fa-shield-alt"></i>
+                </div>
+                <h2 class="profile-title">Warrior Profile</h2>
+                <p class="profile-subtitle">Manage your account</p>
+            </div>
+
+            <!-- Profile Content -->
+            <div class="profile-content">
+                <!-- Avatar Section -->
+                <div class="avatar-section">
+                    <div class="avatar-wrapper">
+                        <img src="" alt="Profile Avatar" class="profile-avatar" id="profileAvatar">
+                        <div class="avatar-badge">
+                            <i class="fas fa-crown"></i>
+                        </div>
+                    </div>
+                    <h3 class="avatar-name" id="displayName">Loading...</h3>
+                    <p class="avatar-role" id="userRole">Member</p>
+
+                    <div class="avatar-selection-grid mt-4">
+                        <h6 class="text-white-50 mb-3"><i class="fas fa-user-astronaut mb-1"></i><br>Choose Avatar
+                            Collection</h6>
+                        <div class="d-flex justify-content-center gap-3 flex-wrap" id="avatarList">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profile Info Tabs -->
+                <div class="profile-tabs">
+                    <button class="profile-tab active" id="infoTab">
+                        <i class="fas fa-user"></i> Profile Info
+                    </button>
+                    <button class="profile-tab" id="securityTab">
+                        <i class="fas fa-shield"></i> Security
+                    </button>
+
+                </div>
+
+                <!-- Profile Info Section -->
+                <div class="profile-section active" id="infoSection">
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-envelope"></i> Email Address
+                        </label>
+                        <div class="info-value" id="userEmail">loading@email.com</div>
+                        <small class="info-note">Email cannot be changed</small>
+                    </div>
+
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-user"></i> Display Name
+                        </label>
+                        <div class="info-edit">
+                            <input type="text" class="info-input" id="userName" placeholder="Your name">
+                            <button class="info-save-btn" id="saveNameBtn">
+                                <i class="fas fa-save"></i> Save
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-calendar"></i> Member Since
+                        </label>
+                        <div class="info-value" id="memberSince">Loading...</div>
+                    </div>
+
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-id-card"></i> Account Type
+                        </label>
+                        <div class="info-value">
+                            <span class="account-badge" id="accountType">Free Account</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Security Section -->
+                <div class="profile-section" id="securitySection">
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-lock"></i> Current Password
+                        </label>
+                        <div class="info-edit">
+                            <input type="password" class="info-input" id="currentPassword"
+                                placeholder="Enter current password">
+                        </div>
+                    </div>
+
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-key"></i> New Password
+                        </label>
+                        <div class="info-edit">
+                            <input type="password" class="info-input" id="newPassword" placeholder="Enter new password">
+                            <button class="password-toggle" id="toggleNewPassword" type="button">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <small class="info-note">Minimum 6 characters</small>
+                    </div>
+
+                    <div class="info-group">
+                        <label class="info-label">
+                            <i class="fas fa-check-circle"></i> Confirm New Password
+                        </label>
+                        <div class="info-edit">
+                            <input type="password" class="info-input" id="confirmPassword"
+                                placeholder="Confirm new password">
+                            <button class="password-toggle" id="toggleConfirmPassword" type="button">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button class="btn-update-password" id="updatePasswordBtn">
+                        <i class="fas fa-sync-alt"></i> Update Password
+                    </button>
+                </div>
+
+                <!-- Logout Button -->
+                <button class="btn-logout-profile" id="logoutBtn">
+                    <i class="fas fa-sign-out-alt"></i> Logout from Onyx
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+        import {
+            getAuth,
+            updatePassword,
+            updateProfile,
+            reauthenticateWithCredential,
+            EmailAuthProvider,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            getDoc,
+            updateDoc,
+            collection,
+            query,
+            where,
+            getDocs,
+            writeBatch
+        } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+        // Firebase Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyDM9zOfVMfqFFaODd7OZ-N2qC4ZuZhe10o",
+            authDomain: "fauxfireotp.firebaseapp.com",
+            databaseURL: "https://fauxfireotp-default-rtdb.firebaseio.com",
+            projectId: "fauxfireotp",
+            storageBucket: "fauxfireotp.firebasestorage.app",
+            messagingSenderId: "254203897427",
+            appId: "1:254203897427:web:a786eb9cf8d7c3514208a6"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const profileAvatar = document.getElementById('profileAvatar');
+        const displayName = document.getElementById('displayName');
+        const userEmail = document.getElementById('userEmail');
+        const userName = document.getElementById('userName');
+        const userRole = document.getElementById('userRole');
+        const memberSince = document.getElementById('memberSince');
+        const accountType = document.getElementById('accountType');
+        const saveNameBtn = document.getElementById('saveNameBtn');
+        const updatePasswordBtn = document.getElementById('updatePasswordBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+
+        // Tabs
+        const infoTab = document.getElementById('infoTab');
+        const securityTab = document.getElementById('securityTab');
+
+        const infoSection = document.getElementById('infoSection');
+        const securitySection = document.getElementById('securitySection');
+        const statsSection = document.getElementById('statsSection');
+        const avatarList = document.getElementById('avatarList');
+
+        let unlockedAvatars = JSON.parse(localStorage.getItem('unlockedAvatars') || '["default"]');
+        let currentUserId = null;
+        let isUnlocking = false;
+
+        // Password toggles
+        const toggleNewPassword = document.getElementById('toggleNewPassword');
+        const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
+
+        // Toast function
+        const showToast = (message, type = 'success') => {
+            const toast = document.getElementById('toast');
+            toast.className = `toast-notification toast-${type}`;
+            toast.innerHTML = `
+                <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+            toast.classList.add('show');
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        };
+
+        // Check authentication
+        const checkAuth = () => {
+            const user = auth.currentUser;
+            const savedUser = localStorage.getItem('currentUser');
+
+            if (!user && !savedUser) {
+                window.location.href = 'login.html';
+                return null;
+            }
+
+            return user || JSON.parse(savedUser);
+        };
+
+        // Load user data
+        const loadUserData = async () => {
+            try {
+                const user = auth.currentUser;
+                const savedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+                if (!user && savedUser.uid) {
+                    currentUserId = savedUser.uid;
+                    // Guest user
+                    displayName.textContent = savedUser.name || 'Guest Warrior';
+                    userEmail.textContent = savedUser.email || 'guest@fauxfire.com';
+                    userName.value = savedUser.name || 'Guest Warrior';
+                    userRole.textContent = savedUser.role || 'guest';
+                    accountType.textContent = savedUser.role === 'admin' ? 'Admin Account' : 'Free Account';
+
+                    // Set avatar
+                    profileAvatar.src = savedUser.avatar || 'https://api.dicebear.com/7.x/adventurer/svg?seed=Guest';
+
+                    // Member since (for guest, show current date)
+                    memberSince.textContent = new Date().toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                    });
+
+                    if (savedUser.unlockedAvatars) {
+                        unlockedAvatars = savedUser.unlockedAvatars;
+                    }
+
+                    renderAvatars(savedUser.avatar || '');
+                    return;
+                }
+
+                if (user) {
+                    currentUserId = user.uid;
+                    // Firebase user
+                    displayName.textContent = user.displayName || user.email.split('@')[0];
+                    userEmail.textContent = user.email;
+                    userName.value = user.displayName || user.email.split('@')[0];
+
+                    // Get additional data from Firestore
+                    const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    if (userDoc.exists()) {
+                        const data = userDoc.data();
+                        userRole.textContent = data.role || 'member';
+                        accountType.textContent = data.role === 'admin' ? 'Admin Account' : 'Free Account';
+
+                        if (data.unlockedAvatars) {
+                            unlockedAvatars = data.unlockedAvatars;
+                            localStorage.setItem('unlockedAvatars', JSON.stringify(unlockedAvatars));
+                        }
+
+                        // Member since
+                        if (data.createdAt) {
+                            const date = new Date(data.createdAt);
+                            memberSince.textContent = date.toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                            });
+                        }
+                    }
+
+                    // Set avatar
+                    profileAvatar.src = savedUser.avatar || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.email}`;
+                    renderAvatars(profileAvatar.src);
+                }
+            } catch (error) {
+                console.error('Error loading user data:', error);
+                showToast('Error loading profile', 'error');
+            }
+        };
+
+        // Update display name
+        const updateDisplayName = async () => {
+            const newName = userName.value.trim();
+            const user = auth.currentUser;
+            const savedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+
+            if (!newName) {
+                showToast('Please enter a name', 'error');
+                return;
+            }
+
+            try {
+                saveNameBtn.disabled = true;
+                saveNameBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+                if (user) {
+                    // Firebase user
+                    await updateProfile(user, { displayName: newName });
+
+                    // Update Firestore
+                    await updateDoc(doc(db, 'users', user.uid), {
+                        name: newName
+                    });
+
+                    // Update localStorage
+                    savedUser.name = newName;
+                } else {
+                    // Guest user
+                    savedUser.name = newName;
+                }
+
+                localStorage.setItem('currentUser', JSON.stringify(savedUser));
+                displayName.textContent = newName;
+                showToast('Name updated successfully!', 'success');
+
+            } catch (error) {
+                console.error('Error updating name:', error);
+                showToast('Failed to update name', 'error');
+            } finally {
+                saveNameBtn.disabled = false;
+                saveNameBtn.innerHTML = '<i class="fas fa-save"></i> Save';
+            }
+        };
+
+        // Update password
+        const updateUserPassword = async () => {
+            const currentPassword = document.getElementById('currentPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const user = auth.currentUser;
+
+            if (!user) {
+                showToast('Guest accounts cannot change password', 'error');
+                return;
+            }
+
+            if (!currentPassword || !newPassword || !confirmPassword) {
+                showToast('Please fill all password fields', 'error');
+                return;
+            }
+
+            if (newPassword !== confirmPassword) {
+                showToast('New passwords do not match', 'error');
+                return;
+            }
+
+            if (newPassword.length < 6) {
+                showToast('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            try {
+                updatePasswordBtn.disabled = true;
+                updatePasswordBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Updating...';
+
+                // Re-authenticate user
+                const credential = EmailAuthProvider.credential(user.email, currentPassword);
+                await reauthenticateWithCredential(user, credential);
+
+                // Update password
+                await updatePassword(user, newPassword);
+
+                showToast('Password updated successfully!', 'success');
+
+                // Clear fields
+                document.getElementById('currentPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+
+            } catch (error) {
+                console.error('Error updating password:', error);
+
+                if (error.code === 'auth/wrong-password') {
+                    showToast('Current password is incorrect', 'error');
+                } else if (error.code === 'auth/weak-password') {
+                    showToast('Password too weak', 'error');
+                } else {
+                    showToast('Failed to update password', 'error');
+                }
+            } finally {
+                updatePasswordBtn.disabled = false;
+                updatePasswordBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Update Password';
+            }
+        };
+
+        // Logout
+        const handleLogout = async () => {
+            try {
+                await signOut(auth);
+                localStorage.removeItem('currentUser');
+                localStorage.removeItem('unlockedAvatars');
+                showToast('Logged out successfully!', 'success');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1500);
+            } catch (error) {
+                console.error('Logout error:', error);
+                showToast('Error logging out', 'error');
+            }
+        };
+
+        // Render Avatar Options
+        const getAvatarOptions = () => {
+            const user = checkAuth();
+            const seed = user && user.email ? user.email : 'Guest';
+
+            return [
+                { id: 'default', src: `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}` },
+                { id: 'boy', src: 'https://api.dicebear.com/7.x/micah/svg?seed=Alex' },
+                {
+                    id: 'girl',
+                    src: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Molly&backgroundColor=ffd5dc',
+                    label: 'Legendary Girl'
+                },
+                {
+                    id: 'kid',
+                    src: 'https://api.dicebear.com/7.x/adventurer/svg?seed=Lilly&backgroundColor=ffd5dc',
+                    label: 'Legendary Kids'
+                },
+                { id: 'robot', src: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=Sparky&backgroundColor=d1d4f9' }
+            ];
+        };
+
+        const renderAvatars = (currentSrc) => {
+            if (!avatarList) return;
+
+            const avatarOptions = getAvatarOptions();
+            avatarList.innerHTML = '';
+
+            avatarOptions.forEach(av => {
+                const isUnlocked = unlockedAvatars.includes(av.id);
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'relative';
+                wrapper.style.cursor = 'pointer';
+                wrapper.style.transition = 'transform 0.2s';
+
+                const img = document.createElement('img');
+                img.src = av.src;
+                img.style.width = '70px';
+                img.style.height = '70px';
+                img.style.borderRadius = '50%';
+                img.style.backgroundColor = '#1e1e1e';
+                img.style.objectFit = 'cover';
+
+                // if selected, make it pop
+                if (currentSrc === av.src) {
+                    img.style.border = '3px solid #0dcaf0';
+                    img.style.boxShadow = '0 0 15px rgba(13, 202, 240, 0.4)';
+                } else {
+                    img.style.border = '2px solid ' + (isUnlocked ? '#fbc02d' : '#333');
+                    img.style.opacity = isUnlocked ? '1' : '0.4';
+                }
+
+                wrapper.appendChild(img);
+
+                if (!isUnlocked) {
+                    const lockOverlay = document.createElement('div');
+                    lockOverlay.className = 'lock-overlay';
+                    lockOverlay.style.position = 'absolute';
+                    lockOverlay.style.top = '0';
+                    lockOverlay.style.left = '0';
+                    lockOverlay.style.width = '100%';
+                    lockOverlay.style.height = '100%';
+                    lockOverlay.style.display = 'flex';
+                    lockOverlay.style.flexDirection = 'column';
+                    lockOverlay.style.alignItems = 'center';
+                    lockOverlay.style.justifyContent = 'center';
+                    lockOverlay.style.borderRadius = '50%';
+                    lockOverlay.style.backgroundColor = 'rgba(0,0,0,0.3)';
+
+                    const lockIcon = document.createElement('i');
+                    lockIcon.className = 'fas fa-lock lock-icon';
+                    lockIcon.style.color = '#fff';
+                    lockIcon.style.fontSize = '1.2rem';
+                    lockIcon.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
+
+                    const spinner = document.createElement('i');
+                    spinner.className = 'fas fa-spinner fa-spin spinner-icon';
+                    spinner.style.color = '#fff';
+                    spinner.style.fontSize = '1.2rem';
+                    spinner.style.display = 'none';
+                    spinner.style.textShadow = '0 2px 4px rgba(0,0,0,0.8)';
+
+                    const spinnerText = document.createElement('span');
+                    spinnerText.className = 'spinner-text';
+                    spinnerText.innerHTML = 'Unlocking';
+                    spinnerText.style.color = '#fff';
+                    spinnerText.style.fontSize = '0.55rem';
+                    spinnerText.style.marginTop = '4px';
+                    spinnerText.style.display = 'none';
+                    spinnerText.style.textAlign = 'center';
+                    spinnerText.style.fontWeight = 'bold';
+                    spinnerText.style.textShadow = '0 1px 2px rgba(0,0,0,0.8)';
+
+                    lockOverlay.appendChild(lockIcon);
+                    lockOverlay.appendChild(spinner);
+                    lockOverlay.appendChild(spinnerText);
+                    wrapper.appendChild(lockOverlay);
+                }
+
+                // Hover effect
+                wrapper.onmouseover = () => { if (!isUnlocking) wrapper.style.transform = 'scale(1.1)'; };
+                wrapper.onmouseout = () => { if (!isUnlocking) wrapper.style.transform = 'scale(1)'; };
+
+                wrapper.addEventListener('click', async () => {
+                    if (isUnlocking) return;
+
+                    if (isUnlocked) {
+                        selectAvatarFromList(av.src);
+                    } else {
+                        isUnlocking = true;
+
+                        let blocker = document.createElement('div');
+                        blocker.id = 'clickBlocker';
+                        blocker.style.position = 'fixed';
+                        blocker.style.top = '0';
+                        blocker.style.left = '0';
+                        blocker.style.width = '100vw';
+                        blocker.style.height = '100vh';
+                        blocker.style.zIndex = '9999';
+                        document.body.appendChild(blocker);
+
+                        // Show spinner
+                        const lockOverlay = wrapper.querySelector('.lock-overlay');
+                        if (lockOverlay) {
+                            lockOverlay.querySelector('.lock-icon').style.display = 'none';
+                            lockOverlay.querySelector('.spinner-icon').style.display = 'block';
+                            lockOverlay.querySelector('.spinner-text').style.display = 'block';
+                            lockOverlay.style.backgroundColor = 'rgba(0, 0, 0, 0.6)';
+                        }
+
+                        await promptUnlockAvatar(av.id);
+
+                        isUnlocking = false;
+                        const blk = document.getElementById('clickBlocker');
+                        if (blk) blk.remove();
+                    }
+                });
+
+                avatarList.appendChild(wrapper);
+            });
+        };
+
+        const selectAvatarFromList = async (src) => {
+            profileAvatar.src = src;
+            const savedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            savedUser.avatar = src;
+            localStorage.setItem('currentUser', JSON.stringify(savedUser));
+
+            const fireUser = auth.currentUser;
+            const userEmail = fireUser ? fireUser.email : savedUser.email;
+
+            if (fireUser) {
+                try {
+                    await updateDoc(doc(db, 'users', fireUser.uid), { avatar: src });
+                } catch (e) { }
+            }
+
+            if (userEmail) {
+                showToast('Syncing avatar globally...', 'success');
+                // Update all previous posts so everyone sees the new avatar
+                try {
+                    const qOptions = query(collection(db, 'ugc_posts'), where('user.email', '==', userEmail));
+                    const qs = await getDocs(qOptions);
+
+                    if (!qs.empty) {
+                        const batch = writeBatch(db);
+                        qs.forEach(docSnap => {
+                            batch.update(docSnap.ref, { "user.avatar": src });
+                        });
+                        await batch.commit();
+                    }
+
+                    // Update all previous comments so everyone sees the new avatar in comments
+                    const allPostsSnap = await getDocs(collection(db, 'ugc_posts'));
+                    for (const postDoc of allPostsSnap.docs) {
+                        const qComments = query(collection(db, `ugc_posts/${postDoc.id}/comments`), where('user.email', '==', userEmail));
+                        const qsc = await getDocs(qComments);
+
+                        if (!qsc.empty) {
+                            const cbatch = writeBatch(db);
+                            qsc.forEach(c => {
+                                cbatch.update(c.ref, { "user.avatar": src });
+                            });
+                            await cbatch.commit();
+                        }
+                    }
+                } catch (e) {
+                    console.error("Old posts update error", e);
+                }
+            }
+
+            renderAvatars(src); // Re-render to show selection box
+
+            setTimeout(() => {
+                location.reload();
+            }, 600);
+        };
+
+        const promptUnlockAvatar = async (id) => {
+            // Wait 2 seconds for the unlocking spinner
+            await new Promise(r => setTimeout(r, 2000));
+
+            if (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.AdMob) {
+                // Not on mobile or no AdMob, just unlock it fallback
+                unlockAvatarLocally(id);
+                return;
+            }
+
+            const AdMob = window.Capacitor.Plugins.AdMob;
+
+            return new Promise(async (resolve) => {
+                try {
+                    const adId = 'ca-app-pub-2895577345632637/8638307109';
+                    let rewardEarned = false;
+
+                    let rewardListener = AdMob.addListener('rewardedVideoUserDidEarnReward', (rewardItem) => {
+                        console.log("Earned reward", rewardItem);
+                        rewardEarned = true;
+                        unlockAvatarLocally(id);
+                    });
+
+                    let closeListener = AdMob.addListener('rewardedVideoAdDismissed', () => {
+                        rewardListener.remove();
+                        closeListener.remove();
+                        // If user closed without reward or there was an issue, still unlock
+                        if (!rewardEarned) {
+                            unlockAvatarLocally(id);
+                        }
+                        resolve();
+                    });
+
+                    await AdMob.prepareRewardVideoAd({ adId, isTesting: false });
+                    await AdMob.showRewardVideoAd();
+
+                } catch (e) {
+                    console.error("AdMob Error:", e);
+                    // If Ad fails to load or error occurs, still unlock perfectly
+                    unlockAvatarLocally(id);
+                    resolve();
+                }
+            });
+        };
+
+        const unlockAvatarLocally = async (id) => {
+            if (!unlockedAvatars.includes(id)) {
+                unlockedAvatars.push(id);
+            }
+            localStorage.setItem('unlockedAvatars', JSON.stringify(unlockedAvatars));
+
+            const savedUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+            savedUser.unlockedAvatars = unlockedAvatars;
+            localStorage.setItem('currentUser', JSON.stringify(savedUser));
+
+            // Update Firestore if actual user
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await updateDoc(doc(db, 'users', user.uid), { unlockedAvatars });
+                } catch (e) { console.error("Firestore sync error", e); }
+            }
+
+            showToast('Avatar unlocked! Rewards claimed.', 'success');
+            renderAvatars(profileAvatar.src);
+        };
+
+        // Tab switching
+        infoTab.addEventListener('click', () => {
+            infoTab.classList.add('active');
+            securityTab.classList.remove('active');
+
+            infoSection.classList.add('active');
+            securitySection.classList.remove('active');
+            statsSection.classList.remove('active');
+        });
+
+        securityTab.addEventListener('click', () => {
+            securityTab.classList.add('active');
+            infoTab.classList.remove('active');
+
+            securitySection.classList.add('active');
+            infoSection.classList.remove('active');
+            statsSection.classList.remove('active');
+        });
+
+
+
+        // Password toggle
+        toggleNewPassword.addEventListener('click', () => {
+            const password = document.getElementById('newPassword');
+            const icon = toggleNewPassword.querySelector('i');
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        toggleConfirmPassword.addEventListener('click', () => {
+            const password = document.getElementById('confirmPassword');
+            const icon = toggleConfirmPassword.querySelector('i');
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
+
+        // Event listeners
+        saveNameBtn.addEventListener('click', updateDisplayName);
+        updatePasswordBtn.addEventListener('click', updateUserPassword);
+        logoutBtn.addEventListener('click', handleLogout);
+
+        // Initialize
+        const user = checkAuth();
+        if (user) {
+            loadUserData();
+        }
+
+        // Listen for auth changes
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                loadUserData();
+            } else {
+                const savedUser = localStorage.getItem('currentUser');
+                if (!savedUser) {
+                    window.location.href = 'login.html';
+                }
+            }
+        });
+        // Sidebar Toggle Functionality
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const closeSidebar = document.getElementById('closeSidebar');
+        const sidebar = document.getElementById('mySidebar');
+        const overlay = document.getElementById('sidebarOverlay');
+
+        function openSidebar() {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+        }
+
+        function closeSidebarFunc() {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        }
+
+        if (sidebarToggle) {
+            sidebarToggle.addEventListener('click', openSidebar);
+        }
+
+        if (closeSidebar) {
+            closeSidebar.addEventListener('click', closeSidebarFunc);
+        }
+
+        if (overlay) {
+            overlay.addEventListener('click', closeSidebarFunc);
+        }
+
+        // Sidebar Auth Check & Display Info
+        const sideCurrentUserParam = localStorage.getItem('currentUser');
+        if (sideCurrentUserParam) {
+            const uData = JSON.parse(sideCurrentUserParam);
+            const sUserInfo = document.getElementById('sideUserInfo');
+            if (sUserInfo) sUserInfo.style.display = 'block';
+
+            const sUserName = document.getElementById('sideUserName');
+            if (sUserName) sUserName.textContent = uData.name || 'Gamer';
+
+            if (uData.avatar) {
+                const sImg = document.getElementById('sideProfileImg');
+                const sFallback = document.getElementById('sideProfileFallback');
+                if (sImg && sFallback) {
+                    sImg.src = uData.avatar;
+                    sImg.style.display = 'block';
+                    sFallback.style.display = 'none';
+                }
+            }
+        } else {
+            const sAuthBtn = document.getElementById('sideAuthBtn');
+            const sProfileLink = document.getElementById('sideProfileLink');
+            if (sAuthBtn) sAuthBtn.style.display = 'block';
+            if (sProfileLink) sProfileLink.style.display = 'none';
+            const sideLogoutBtn = document.getElementById('sideLogout');
+            if (sideLogoutBtn) sideLogoutBtn.style.display = 'none';
+        }
+
+        const sideLogoutBtn = document.getElementById('sideLogout');
+        if (sideLogoutBtn) {
+            sideLogoutBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (typeof handleLogout !== 'undefined') {
+                    handleLogout();
+                } else {
+                    localStorage.removeItem('currentUser');
+                    location.reload();
+                }
+            });
+        }
+    </script>
+    <script src="push.js"></script>
+    <script src="backbutton.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,1125 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login - Faux Fire Community</title>
+  <!-- Bootstrap + Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Nunito:wght@400;600;700;800&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="login-style.css">
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
+  <script>
+    emailjs.init("yj30qDC4NQRUMHjIS");
+  </script>
+  <style>
+    .toast-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--parchment);
+      border-left: 6px solid var(--gold);
+      border-radius: 12px;
+      padding: 15px 25px;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      z-index: 10000;
+      transform: translateX(400px);
+      transition: transform 0.3s ease;
+    }
+
+    .toast-notification.show {
+      transform: translateX(0);
+    }
+
+    .toast-notification.toast-success {
+      border-left-color: #4caf50;
+    }
+
+    .toast-notification.toast-error {
+      border-left-color: #f44336;
+    }
+
+    .toast-notification i {
+      font-size: 1.5rem;
+    }
+
+    .toast-notification.toast-success i {
+      color: #4caf50;
+    }
+
+    .toast-notification.toast-error i {
+      color: #f44336;
+    }
+
+    /* OTP Modal Styles */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 20000;
+      opacity: 0;
+      visibility: hidden;
+      transition: all 0.3s ease;
+    }
+
+    .modal-overlay.show {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .otp-modal {
+      background: var(--wood-dark);
+      border: 4px solid var(--gold);
+      border-radius: 30px;
+      padding: 30px;
+      max-width: 400px;
+      width: 90%;
+      position: relative;
+      transform: scale(0.7);
+      transition: transform 0.3s ease;
+    }
+
+    .modal-overlay.show .otp-modal {
+      transform: scale(1);
+    }
+
+    .otp-title {
+      font-family: 'Luckiest Guy', cursive;
+      color: var(--gold);
+      font-size: 2rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .otp-inputs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin: 30px 0;
+    }
+
+    .otp-input {
+      width: 50px;
+      height: 60px;
+      border: 3px solid var(--gold);
+      border-radius: 10px;
+      background: var(--parchment);
+      font-size: 24px;
+      font-weight: bold;
+      text-align: center;
+      color: var(--wood-dark);
+      font-family: 'Luckiest Guy', cursive;
+    }
+
+    .otp-input:focus {
+      outline: none;
+      border-color: var(--gold-light);
+      box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+    }
+
+    .otp-timer {
+      text-align: center;
+      color: var(--parchment);
+      margin-bottom: 20px;
+    }
+
+    .otp-verify-btn {
+      background: linear-gradient(180deg, var(--gold) 0%, var(--gold-dark) 100%);
+      border: none;
+      border-bottom: 4px solid #8b6910;
+      color: var(--wood-brown);
+      font-weight: 800;
+      padding: 12px;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-family: 'Luckiest Guy', cursive;
+      width: 100%;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .otp-verify-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      border-bottom-width: 5px;
+    }
+
+    .otp-verify-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .resend-link {
+      text-align: center;
+      margin-top: 15px;
+    }
+
+    .resend-link a {
+      color: var(--gold);
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    .resend-link a:hover {
+      text-decoration: underline;
+    }
+
+    .close-modal {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: none;
+      border: none;
+      color: var(--gold);
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Simple Navbar -->
+  <nav class="main-nav">
+    <div class="container">
+      <a class="brand" href="#">
+        <i class="fas fa-gem me-2"></i>
+        onyx
+      </a>
+    </div>
+  </nav>
+
+  <!-- Login Container -->
+  <div class="login-container">
+    <!-- Wooden Chest Card -->
+    <div class="login-card">
+      <!-- Header with Gold -->
+      <div class="login-header">
+        <div class="header-icon">
+          <i class="fas fa-shield-alt"></i>
+        </div>
+        <h2 class="login-title">Account</h2>
+
+      </div>
+
+      <!-- Login Form -->
+      <div class="login-form">
+        <!-- Email Input -->
+        <div class="input-group">
+          <div class="input-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <input type="email" class="form-control" id="loginEmail" placeholder="Email address" autocomplete="email">
+        </div>
+
+        <!-- Password Input -->
+        <div class="input-group">
+          <div class="input-icon">
+            <i class="fas fa-lock"></i>
+          </div>
+          <input type="password" class="form-control" id="loginPassword" placeholder="Password"
+            autocomplete="current-password">
+          <button class="password-toggle" id="toggleLoginPassword" type="button">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+
+        <!-- Remember & Forgot -->
+        <div class="form-options">
+          <label class="checkbox-container">
+            <input type="checkbox" id="remember">
+            <span class="checkmark"></span>
+            <span class="checkbox-text">Remember me</span>
+          </label>
+          <a href="#" class="forgot-link" id="forgotPassword">Forgot password?</a>
+        </div>
+
+        <!-- Login Button -->
+        <button class="btn-login" id="loginBtn">
+          <span class="btn-text">Login</span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+
+        <!-- Register Link -->
+        <div class="register-section">
+          <p class="register-text">New to the Onyx</p>
+          <a href="#" class="register-link" id="showRegister">Create an Account</a>
+
+        </div>
+      </div>
+
+      <!-- Register Form (Initially Hidden) -->
+      <div class="register-form" id="registerForm" style="display: none;">
+        <div class="input-group">
+          <div class="input-icon">
+            <i class="fas fa-user"></i>
+          </div>
+          <input type="text" class="form-control" id="regName" placeholder="Your name">
+        </div>
+
+        <div class="input-group">
+          <div class="input-icon">
+            <i class="fas fa-envelope"></i>
+          </div>
+          <input type="email" class="form-control" id="regEmail" placeholder="Email address">
+        </div>
+
+        <div class="input-group">
+          <div class="input-icon">
+            <i class="fas fa-lock"></i>
+          </div>
+          <input type="password" class="form-control" id="regPassword" placeholder="Password">
+          <button class="password-toggle" id="toggleRegPassword" type="button">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+
+        <div class="input-group">
+          <div class="input-icon">
+            <i class="fas fa-lock"></i>
+          </div>
+          <input type="password" class="form-control" id="regConfirmPassword" placeholder="Confirm password">
+          <button class="password-toggle" id="toggleRegConfirmPassword" type="button">
+            <i class="fas fa-eye"></i>
+          </button>
+        </div>
+
+        <!-- Register Button -->
+        <button class="btn-login" id="registerBtn">
+          <span class="btn-text">Create Account</span>
+          <i class="fas fa-check"></i>
+        </button>
+
+        <div class="register-section">
+          <p class="register-text">Already have an account?</p>
+          <a href="#" class="register-link" id="backToLogin">Back to Login</a>
+        </div>
+      </div>
+
+
+      <!-- Village Decorations -->
+      <div class="village-decoration">
+        <div class="decoration left">
+          <i class="fas fa-tree"></i>
+          <i class="fas fa-tree"></i>
+        </div>
+        <div class="decoration right">
+          <i class="fas fa-mountain"></i>
+          <i class="fas fa-water"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OTP Modal -->
+  <div class="modal-overlay" id="otpModal">
+    <div class="otp-modal">
+      <button class="close-modal" id="closeOtpModal">&times;</button>
+      <h3 class="otp-title">Enter OTP</h3>
+      <p style="color: var(--parchment); text-align: center;" id="otpEmailDisplay"></p>
+
+      <div class="otp-inputs">
+        <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+        <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+        <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+        <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+        <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+        <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric">
+      </div>
+
+      <div class="otp-timer" id="otpTimer">Time remaining: 05:00</div>
+
+      <button class="otp-verify-btn" id="verifyOtpBtn">Verify OTP</button>
+
+      <div class="resend-link">
+        <a href="#" id="resendOtp">Resend OTP</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Forgot Password Modal -->
+  <div class="modal-overlay" id="forgotModal">
+    <div class="forgot-modal"
+      style="background: var(--wood-dark); border: 4px solid var(--gold); border-radius: 30px; padding: 30px; max-width: 400px; width: 90%; position: relative;">
+      <button class="close-modal" id="closeForgotModal">&times;</button>
+      <h3 class="otp-title" style="font-size: 1.8rem;">Reset Password</h3>
+      <p style="color: var(--parchment); text-align: center; margin-bottom: 20px;">
+        Apna registered email darj karein uspar password reset link bhej dia jaega.
+      </p>
+
+      <div class="input-group" style="margin-bottom: 20px;">
+        <div class="input-icon">
+          <i class="fas fa-envelope"></i>
+        </div>
+        <input type="email" class="form-control" id="forgotEmailInput" placeholder="Enter your email"
+          style="border-radius: 10px; padding-left: 45px !important; background: var(--parchment); font-weight: bold;">
+      </div>
+
+      <button class="otp-verify-btn" id="sendResetLinkBtn">Send OTP</button>
+    </div>
+  </div>
+
+  <!-- New Password Modal -->
+  <div class="modal-overlay" id="newPasswordModal">
+    <div class="forgot-modal"
+      style="background: var(--wood-dark); border: 4px solid var(--gold); border-radius: 30px; padding: 30px; max-width: 400px; width: 90%; position: relative;">
+      <button class="close-modal" id="closeNewPassModal">&times;</button>
+      <h3 class="otp-title" style="font-size: 1.8rem;">New Password</h3>
+      <p style="color: var(--parchment); text-align: center; margin-bottom: 20px;">
+        OTP Verified! Write New Password.
+      </p>
+
+      <div class="input-group" style="margin-bottom: 20px;">
+        <div class="input-icon">
+          <i class="fas fa-lock"></i>
+        </div>
+        <input type="password" class="form-control" id="resetNewPassword" placeholder="Enter new password"
+          style="border-radius: 10px; padding-left: 45px !important; background: var(--parchment); font-weight: bold;">
+      </div>
+
+      <button class="otp-verify-btn" id="saveNewPasswordBtn">Save Password</button>
+    </div>
+  </div>
+  <footer style="text-align: center; margin-top: 30px; padding-bottom: 5px;">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+      <span style="color: #ffcc00; font-size: 16px;">🎧</span>
+
+      <a href="contact.html" style="
+      color: #e0e0e0; 
+      text-decoration: none; 
+      font-size: 13px; 
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-bottom: 1px solid #ffcc00;
+      padding-bottom: 2px;
+      transition: 0.3s;
+    ">
+        Help & Support
+      </a>
+    </div>
+
+    <p style="color: #8f8f8f; font-size: 11px; margin-top: 10px;">
+      &copy; Faux Fire Official
+    </p>
+  </footer>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      sendPasswordResetEmail,
+      updateProfile,
+    } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, updateDoc } from "https://www.gstatic.com/firebasejs/12.1.0/firebase-firestore.js";
+
+    // Make sure EmailJS is initialized
+    (function initEmailJS() {
+      if (typeof emailjs !== 'undefined') {
+        emailjs.init("yj30qDC4NQRUMHJIS");
+        console.log("✅ EmailJS initialized");
+      } else {
+        console.error("❌ EmailJS not loaded");
+      }
+    })();
+
+    // Firebase Config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDM9zOfVMfqFFaODd7OZ-N2qC4ZuZhe10o",
+      authDomain: "fauxfireotp.firebaseapp.com",
+      databaseURL: "https://fauxfireotp-default-rtdb.firebaseio.com",
+      projectId: "fauxfireotp",
+      storageBucket: "fauxfireotp.firebasestorage.app",
+      messagingSenderId: "254203897427",
+      appId: "1:254203897427:web:a786eb9cf8d7c3514208a6"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const ADMIN_EMAILS = ["fauxfireofficial@gmail.com"];
+
+    // ========== DOM Elements ==========
+    const loginForm = document.querySelector('.login-form');
+    const registerForm = document.getElementById('registerForm');
+    const showRegister = document.getElementById('showRegister');
+    const backToLogin = document.getElementById('backToLogin');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const forgotPassword = document.getElementById('forgotPassword');
+    const toggleLoginPassword = document.getElementById('toggleLoginPassword');
+    const toggleRegPassword = document.getElementById('toggleRegPassword');
+    const toggleRegConfirmPassword = document.getElementById('toggleRegConfirmPassword');
+
+    // OTP Modal Elements
+    const otpModal = document.getElementById('otpModal');
+    const closeOtpModal = document.getElementById('closeOtpModal');
+    const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+    const resendOtp = document.getElementById('resendOtp');
+    const otpInputs = document.querySelectorAll('.otp-input');
+    const otpTimer = document.getElementById('otpTimer');
+    const otpEmailDisplay = document.getElementById('otpEmailDisplay');
+
+    // Forgot Modal Elements
+    const forgotModal = document.getElementById('forgotModal');
+    const closeForgotModal = document.getElementById('closeForgotModal');
+    const sendResetLinkBtn = document.getElementById('sendResetLinkBtn');
+    const forgotEmailInput = document.getElementById('forgotEmailInput');
+
+    // New Password Modal Elements
+    const newPasswordModal = document.getElementById('newPasswordModal');
+    const closeNewPassModal = document.getElementById('closeNewPassModal');
+    const saveNewPasswordBtn = document.getElementById('saveNewPasswordBtn');
+    const resetNewPassword = document.getElementById('resetNewPassword');
+
+    // OTP State
+    let currentOTP = null;
+    let pendingUserData = null;
+    let timerInterval = null;
+    let timeLeft = 300; // 5 minutes in seconds
+    let otpContext = 'register'; // Tracks whether OTP is for 'register' or 'forgot'
+
+    // ========== Toggle Forms ==========
+    showRegister.addEventListener('click', (e) => {
+      e.preventDefault();
+      loginForm.style.display = 'none';
+      registerForm.style.display = 'block';
+    });
+
+    backToLogin.addEventListener('click', (e) => {
+      e.preventDefault();
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'block';
+    });
+
+    // ========== Toggle Password Visibility ==========
+    toggleLoginPassword.addEventListener('click', () => {
+      const password = document.getElementById('loginPassword');
+      const icon = toggleLoginPassword.querySelector('i');
+      if (password.type === 'password') {
+        password.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        password.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+
+    toggleRegPassword.addEventListener('click', () => {
+      const password = document.getElementById('regPassword');
+      const icon = toggleRegPassword.querySelector('i');
+      if (password.type === 'password') {
+        password.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        password.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+
+    toggleRegConfirmPassword.addEventListener('click', () => {
+      const password = document.getElementById('regConfirmPassword');
+      const icon = toggleRegConfirmPassword.querySelector('i');
+      if (password.type === 'password') {
+        password.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        password.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    });
+
+    // ========== Toast Function ==========
+    const showToast = (message, type = 'success') => {
+      const existingToasts = document.querySelectorAll('.toast-notification');
+      existingToasts.forEach(t => t.remove());
+
+      const toast = document.createElement('div');
+      toast.className = `toast-notification toast-${type}`;
+      toast.innerHTML = `
+        <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+        <span>${message}</span>
+      `;
+      document.body.appendChild(toast);
+
+      setTimeout(() => toast.classList.add('show'), 100);
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+    };
+
+    // ========== User Sync Function ==========
+    const handleUserSync = async (user, customName = null) => {
+      try {
+        const userRef = doc(db, 'users', user.uid);
+        const userSnap = await getDoc(userRef);
+
+        let userData;
+        const role = ADMIN_EMAILS.includes(user.email.toLowerCase()) ? 'admin' : 'member';
+
+        if (!userSnap.exists()) {
+          userData = {
+            uid: user.uid,
+            name: customName || user.displayName || user.email.split('@')[0],
+            email: user.email,
+            avatar: user.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${user.email}`,
+            role: role,
+            createdAt: new Date().toISOString()
+          };
+          await setDoc(userRef, userData);
+        } else {
+          userData = userSnap.data();
+        }
+
+        localStorage.setItem('currentUser', JSON.stringify(userData));
+        showToast('Welcome Warrior!', 'success');
+
+        setTimeout(() => {
+          window.location.href = 'index.html';
+        }, 1500);
+      } catch (e) {
+        console.error("Sync Error:", e);
+        showToast("Database Error", "error");
+      }
+    };
+
+    // ========== OTP Functions ==========
+    function generateOTP() {
+      return Math.floor(100000 + Math.random() * 900000).toString();
+    }
+
+    // ✅ FIXED: Added name parameter
+    async function sendOTPEmail(email, otp, name) {
+      const templateParams = {
+        to_email: email,
+        email: email,
+        otp: otp,
+        name: name,
+        from_name: "Your Onyx Otp"
+      };
+
+      console.log("📧 Sending OTP email with params:", templateParams);
+
+      try {
+        // Your service ID and template ID
+        const serviceId = 'service_wmv24tj';
+        const templateId = 'template_p8zeqz6';
+
+        const response = await emailjs.send(serviceId, templateId, templateParams);
+        console.log("✅ Email sent successfully:", response);
+        return true;
+      } catch (error) {
+        console.error('❌ EmailJS Error:', error);
+        console.error('Error details:', error.text || error.message || error);
+        return false;
+      }
+    }
+
+    function startTimer() {
+      timeLeft = 300; // Reset to 5 minutes
+      updateTimerDisplay();
+
+      if (timerInterval) clearInterval(timerInterval);
+
+      timerInterval = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          timerInterval = null;
+          verifyOtpBtn.disabled = true;
+          showToast('OTP expired. Please request again.', 'error');
+        }
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const minutes = Math.floor(timeLeft / 60);
+      const seconds = timeLeft % 60;
+      otpTimer.textContent = `Time remaining: ${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function resetOtpModal() {
+      otpInputs.forEach(input => input.value = '');
+      if (otpInputs.length > 0) otpInputs[0].focus();
+      if (timerInterval) clearInterval(timerInterval);
+      timerInterval = null;
+      verifyOtpBtn.disabled = false;
+    }
+
+    // OTP Input Navigation
+    otpInputs.forEach((input, index) => {
+      input.addEventListener('input', (e) => {
+        // Only allow numbers
+        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+
+        if (e.target.value.length === 1 && index < otpInputs.length - 1) {
+          otpInputs[index + 1].focus();
+        }
+      });
+
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+          otpInputs[index - 1].focus();
+        }
+      });
+
+      // Prevent non-numeric input
+      input.addEventListener('keypress', (e) => {
+        if (!/[0-9]/.test(e.key)) {
+          e.preventDefault();
+        }
+      });
+    });
+
+    // ========== Registration with OTP ==========
+    const handleRegister = async () => {
+      const name = document.getElementById('regName').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const password = document.getElementById('regPassword').value;
+      const confirmPassword = document.getElementById('regConfirmPassword').value;
+
+      // Validation
+      if (!name || !email || !password || !confirmPassword) {
+        showToast('Please fill all fields', 'error');
+        return;
+      }
+
+      if (password !== confirmPassword) {
+        showToast('Passwords do not match', 'error');
+        return;
+      }
+
+      if (password.length < 6) {
+        showToast('Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email', 'error');
+        return;
+      }
+
+      try {
+        registerBtn.disabled = true;
+        registerBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending OTP...';
+
+        // Generate and send OTP
+        const otp = generateOTP();
+        console.log("🔢 Generated OTP:", otp);
+
+        // ✅ FIXED: Pass name parameter
+        const emailSent = await sendOTPEmail(email, otp, name);
+
+        if (!emailSent) {
+          throw new Error('Failed to send OTP email');
+        }
+
+        // Store pending user data and OTP
+        currentOTP = otp;
+        pendingUserData = { name, email, password };
+        otpContext = 'register';
+
+        // Show OTP modal
+        otpEmailDisplay.textContent = `OTP sent to: ${email}`;
+        otpModal.classList.add('show');
+        resetOtpModal();
+        startTimer();
+
+        showToast('OTP sent to your email!', 'success');
+
+      } catch (error) {
+        console.error('❌ OTP Send Error:', error);
+        showToast('Failed to send OTP. Please try again.', 'error');
+      } finally {
+        registerBtn.disabled = false;
+        registerBtn.innerHTML = '<span class="btn-text">Create Account</span><i class="fas fa-check"></i>';
+      }
+    };
+
+    // Verify OTP and Create Account
+    const verifyOTPAndCreateAccount = async () => {
+      const enteredOTP = Array.from(otpInputs).map(input => input.value).join('');
+
+      if (enteredOTP.length !== 6) {
+        showToast('Please enter complete OTP', 'error');
+        return;
+      }
+
+      if (enteredOTP !== currentOTP) {
+        showToast('Invalid OTP. Please try again.', 'error');
+        otpInputs.forEach(input => input.value = '');
+        otpInputs[0].focus();
+        return;
+      }
+
+      if (!pendingUserData) {
+        showToast('Session expired. Please register again.', 'error');
+        otpModal.classList.remove('show');
+        return;
+      }
+
+      // If OTP context is for Forgot Password
+      if (otpContext === 'forgot') {
+        otpModal.classList.remove('show');
+        newPasswordModal.classList.add('show');
+        return;
+      }
+
+      try {
+        verifyOtpBtn.disabled = true;
+        verifyOtpBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+
+        const { name, email, password } = pendingUserData;
+
+        // Create Firebase account
+        const result = await createUserWithEmailAndPassword(auth, email, password);
+        await updateProfile(result.user, { displayName: name });
+
+        // Sync user data
+        await handleUserSync(result.user, name);
+
+        // Clear pending data
+        pendingUserData = null;
+        currentOTP = null;
+
+        // Close modal
+        otpModal.classList.remove('show');
+
+      } catch (error) {
+        console.error('❌ Account Creation Error:', error);
+
+        let message = 'Failed to create account';
+        if (error.code === 'auth/email-already-in-use') {
+          message = 'Email already in use';
+        } else if (error.code === 'auth/invalid-email') {
+          message = 'Invalid email';
+        } else if (error.code === 'auth/weak-password') {
+          message = 'Password too weak';
+        }
+
+        showToast(message, 'error');
+
+        verifyOtpBtn.disabled = false;
+        verifyOtpBtn.innerHTML = 'Verify OTP';
+      }
+    };
+
+    // Resend OTP
+    const resendOTP = async (e) => {
+      e.preventDefault();
+
+      if (!pendingUserData) {
+        showToast('Session expired. Please register again.', 'error');
+        otpModal.classList.remove('show');
+        return;
+      }
+
+      try {
+        resendOtp.style.pointerEvents = 'none';
+        resendOtp.style.opacity = '0.5';
+
+        const otp = generateOTP();
+        // ✅ FIXED: Pass name parameter
+        const emailSent = await sendOTPEmail(pendingUserData.email, otp, pendingUserData.name);
+
+        if (!emailSent) {
+          throw new Error('Failed to send OTP');
+        }
+
+        currentOTP = otp;
+        resetOtpModal();
+        startTimer();
+        showToast('New OTP sent!', 'success');
+
+      } catch (error) {
+        console.error('❌ Resend OTP Error:', error);
+        showToast('Failed to resend OTP', 'error');
+      } finally {
+        resendOtp.style.pointerEvents = 'auto';
+        resendOtp.style.opacity = '1';
+      }
+    };
+
+
+
+    // ========== Email Login ==========
+    const handleLogin = async () => {
+      const email = document.getElementById('loginEmail').value.trim();
+      const password = document.getElementById('loginPassword').value;
+
+      if (!email || !password) {
+        showToast('Please enter email and password', 'error');
+        return;
+      }
+
+      try {
+        loginBtn.disabled = true;
+        loginBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Entering...';
+
+        const result = await signInWithEmailAndPassword(auth, email, password);
+        await handleUserSync(result.user);
+
+      } catch (error) {
+        console.error("❌ Login Error:", error);
+
+        let message = '';
+
+        switch (error.code) {
+          case 'auth/invalid-credential':
+          case 'auth/user-not-found':
+          case 'auth/wrong-password':
+            message = '❌ Invalid email or password. Please try again or create an account.';
+            break;
+          case 'auth/invalid-email':
+            message = '❌ Invalid email format.';
+            break;
+          case 'auth/user-disabled':
+            message = '❌ This account has been disabled.';
+            break;
+          case 'auth/too-many-requests':
+            message = '❌ Too many failed attempts. Try again later.';
+            break;
+          case 'auth/network-request-failed':
+            message = '❌ Network error. Check your internet connection.';
+            break;
+          default:
+            message = '❌ Login failed. Please try again.';
+        }
+
+        showToast(message, 'error');
+
+      } finally {
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span class="btn-text">Enter Onyx</span><i class="fas fa-arrow-right"></i>';
+      }
+    };
+
+    // ========== Forgot Password Logics ==========
+    // 1. Show the forgot modal
+    const handleForgotPassword = (e) => {
+      e.preventDefault();
+      // Show modal window
+      forgotModal.classList.add('show');
+      // If user had an email already filled in login, bring it over to the popup
+      const existingEmail = document.getElementById('loginEmail').value.trim();
+      if (existingEmail) {
+        forgotEmailInput.value = existingEmail;
+      }
+    };
+
+    // 2. Perform the reset request
+    sendResetLinkBtn.addEventListener('click', async () => {
+      const email = forgotEmailInput.value.trim();
+
+      if (!email) {
+        showToast('Please enter your email', 'error');
+        return;
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        showToast('Please enter a valid email', 'error');
+        return;
+      }
+
+      try {
+        sendResetLinkBtn.disabled = true;
+        sendResetLinkBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sending OTP...';
+
+        // Check if user exists in database
+        const usersRef = collection(db, "users");
+        const q = query(usersRef, where("email", "==", email));
+        const querySnapshot = await getDocs(q);
+
+        if (querySnapshot.empty) {
+          showToast('Error: No account found with this email.', 'error');
+          sendResetLinkBtn.disabled = false;
+          sendResetLinkBtn.innerHTML = 'Send OTP';
+          return;
+        }
+
+        const userData = querySnapshot.docs[0].data();
+        const docId = querySnapshot.docs[0].id;
+
+        // Generate and send OTP via EmailJS
+        const otp = generateOTP();
+        const emailSent = await sendOTPEmail(email, otp, userData.name || "Warrior");
+
+        if (!emailSent) {
+          throw new Error('Email failed');
+        }
+
+        currentOTP = otp;
+        pendingUserData = { email: email, docId: docId };
+        otpContext = 'forgot';
+
+        forgotModal.classList.remove('show');
+        otpEmailDisplay.textContent = `Password Reset OTP sent to: ${email}`;
+        resetOtpModal();
+        startTimer();
+        otpModal.classList.add('show');
+
+        showToast('Success! OTP sent to your email.', 'success');
+      } catch (error) {
+        console.error('❌ Forgot Password Error:', error);
+        showToast('Failed to send OTP. Double check your email.', 'error');
+      } finally {
+        sendResetLinkBtn.disabled = false;
+        sendResetLinkBtn.innerHTML = 'Send OTP';
+      }
+    });
+
+    closeForgotModal.addEventListener('click', () => {
+      forgotModal.classList.remove('show');
+    });
+
+    // 3. Save New Password
+    saveNewPasswordBtn.addEventListener('click', async () => {
+      const newPass = resetNewPassword.value.trim();
+      if (newPass.length < 6) {
+        showToast('Password must be at least 6 characters', 'error');
+        return;
+      }
+
+      try {
+        saveNewPasswordBtn.disabled = true;
+        saveNewPasswordBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving...';
+
+        if (pendingUserData && pendingUserData.docId) {
+          const userRef = doc(db, "users", pendingUserData.docId);
+
+          // Saving logically
+          await updateDoc(userRef, {
+            recovered_password: newPass
+          });
+
+          showToast('Password securely saved in your Database!', 'success');
+          setTimeout(() => {
+            newPasswordModal.classList.remove('show');
+            resetNewPassword.value = '';
+            pendingUserData = null;
+            currentOTP = null;
+            window.location.reload();
+          }, 3000);
+        }
+      } catch (err) {
+        console.error(err);
+        showToast('Failed to save the new password.', 'error');
+      } finally {
+        saveNewPasswordBtn.disabled = false;
+        saveNewPasswordBtn.innerHTML = 'Save Password';
+      }
+    });
+
+    closeNewPassModal.addEventListener('click', () => {
+      newPasswordModal.classList.remove('show');
+    });
+
+    // ========== Test Email Function ==========
+    window.testEmailJSDirect = async () => {
+      const testEmail = prompt("Enter your email for test:");
+      if (!testEmail) return;
+
+      try {
+        const response = await emailjs.send('service_wmv24tj', 'template_p8zeqz6', {
+          to_email: testEmail,
+          email: testEmail,
+          otp_code: "123456",
+          name: "Test User",
+          from_name: "Your Onyx Otp"
+        });
+        console.log("✅ Test success:", response);
+        showToast("Test email sent! Check your inbox.", "success");
+      } catch (error) {
+        console.error("❌ Test failed:", error);
+        showToast("Error: " + (error.text || error.message), "error");
+      }
+    };
+
+    // ========== Event Listeners ==========
+    loginBtn.addEventListener('click', handleLogin);
+    registerBtn.addEventListener('click', handleRegister);
+    forgotPassword.addEventListener('click', handleForgotPassword);
+    verifyOtpBtn.addEventListener('click', verifyOTPAndCreateAccount);
+    closeOtpModal.addEventListener('click', () => {
+      otpModal.classList.remove('show');
+      pendingUserData = null;
+      currentOTP = null;
+      if (timerInterval) clearInterval(timerInterval);
+    });
+    resendOtp.addEventListener('click', resendOTP);
+
+    // Enter key press for login
+    document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') handleLogin();
+    });
+
+    // Check if already logged in
+    if (localStorage.getItem('currentUser')) {
+      window.location.href = 'index.html';
+    }
+
+    // Test user creation function
+    window.createTestUser = async () => {
+      const testEmail = "test@example.com";
+      const testPassword = "test123";
+      const testName = "Test Warrior";
+
+      try {
+        const result = await createUserWithEmailAndPassword(auth, testEmail, testPassword);
+        await updateProfile(result.user, { displayName: testName });
+
+        await setDoc(doc(db, 'users', result.user.uid), {
+          uid: result.user.uid,
+          name: testName,
+          email: testEmail,
+          avatar: `https://api.dicebear.com/7.x/adventurer/svg?seed=${testEmail}`,
+          role: 'member',
+          createdAt: new Date().toISOString()
+        });
+
+        console.log("✅ Test user created!");
+        console.log("Email:", testEmail);
+        console.log("Password:", testPassword);
+        alert("Test user created! Use these credentials to login.");
+      } catch (error) {
+        if (error.code === 'auth/email-already-in-use') {
+          console.log("⚠️ Test user already exists. Use: test@example.com / test123");
+          alert("Test user already exists! Use: test@example.com / test123");
+        } else {
+          console.error("❌ Error:", error);
+        }
+      }
+    };
+
+    // Log EmailJS status
+    console.log("📧 EmailJS loaded:", typeof emailjs !== 'undefined');
+  </script>
+  <script src="backbutton.js"></script>
+</body>
+
+</html>
